@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工作待办追踪系统</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#f0f2f5;color:#333;padding:24px}
+  .app{max-width:1200px;margin:0 auto}
+  .header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:16px;padding:24px 32px;color:white;margin-bottom:20px;box-shadow:0 8px 24px rgba(102,126,234,.25)}
+  .header h1{font-size:22px;font-weight:700}
+  .header p{opacity:.8;margin-top:4px;font-size:13px}
+  .card{background:white;border-radius:12px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+  .card-title{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .badge{background:#667eea;color:white;border-radius:20px;padding:0 10px;font-size:11px;line-height:20px;white-space:nowrap}
+  .badge.green{background:#10b981}
+  .badge.orange{background:#f59e0b}
+  .badge.red{background:#ef4444}
+  .date-bar{display:flex;align-items:center;gap:10px;background:white;border-radius:12px;padding:14px 20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);flex-wrap:wrap}
+  .date-bar label{font-weight:600;font-size:13px;white-space:nowrap}
+  .date-bar input[type=date]{border:1px solid #d0d5dd;border-radius:8px;padding:7px 12px;font-size:13px;outline:none}
+  .date-bar input[type=date]:focus{border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,.15)}
+  .filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #eee}
+  .filter-bar select,.filter-bar input[type=date]{border:1px solid #d0d5dd;border-radius:6px;padding:6px 10px;font-size:13px;outline:none;background:#fafafa}
+  .filter-bar select:focus,.filter-bar input:focus{border-color:#667eea;background:white}
+  .filter-bar .label{font-size:12px;color:#888;margin-right:2px}
+  .add-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end}
+  .add-row .field{display:flex;flex-direction:column;gap:3px}
+  .add-row .field label{font-size:11px;font-weight:600;color:#666}
+  .add-row .field input,.add-row .field select{padding:7px 10px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;outline:none;background:#fafafa;min-width:0}
+  .add-row .field input:focus,.add-row .field select:focus{border-color:#667eea;background:white}
+  .add-row .field select{min-width:100px}
+  .add-row .field input[type=datetime-local]{min-width:170px}
+  .tag-select-wrap{position:relative;min-width:160px}
+  .tag-select-trigger{display:flex;flex-wrap:wrap;gap:4px;padding:5px 8px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;cursor:pointer;background:#fafafa;min-height:32px;align-items:center}
+  .tag-select-trigger:focus,.tag-select-trigger.open{border-color:#667eea;background:white}
+  .tag-select-trigger .placeholder{color:#bbb;font-size:13px}
+  .tag-chip{display:inline-flex;align-items:center;gap:3px;background:#eef2ff;color:#667eea;border-radius:4px;padding:1px 7px;font-size:11px;line-height:20px}
+  .tag-chip .remove{cursor:pointer;font-weight:700;font-size:13px;line-height:1;margin-left:2px;color:#999}
+  .tag-chip .remove:hover{color:#ef4444}
+  .tag-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid #d0d5dd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:100;max-height:200px;overflow-y:auto;padding:6px 0}
+  .tag-dropdown.show{display:block}
+  .tag-dropdown .opt{padding:7px 14px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px}
+  .tag-dropdown .opt:hover{background:#f5f5ff}
+  .tag-dropdown .opt input[type=checkbox]{accent-color:#667eea;width:15px;height:15px}
+  .tag-dropdown .opt .label{flex:1}
+  .tag-dropdown .custom-add{display:flex;padding:7px 14px;gap:6px;border-top:1px solid #eee}
+  .tag-dropdown .custom-add input{flex:1;border:1px solid #d0d5dd;border-radius:6px;padding:5px 8px;font-size:12px;outline:none;min-width:0}
+  .tag-dropdown .custom-add input:focus{border-color:#667eea}
+  .btn{border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;line-height:1.4}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:#667eea;color:white}
+  .btn-primary:hover{background:#5a6fd6}
+  .btn-success{background:#10b981;color:white}
+  .btn-success:hover{background:#059669}
+  .btn-danger{background:#ef4444;color:white}
+  .btn-danger:hover{background:#dc2626}
+  .btn-outline{background:transparent;border:1px solid #d0d5dd;color:#666}
+  .btn-outline:hover{background:#f5f5f5}
+  .btn-sm{padding:6px 14px;font-size:12px}
+  .btn-xs{padding:3px 8px;font-size:11px}
+  .btn-ghost{background:transparent;border:none;color:#999;cursor:pointer;padding:2px 4px;font-size:14px}
+  .btn-ghost:hover{color:#333}
+  .main-grid{display:grid;grid-template-columns:1fr 360px;gap:16px}
+  @media(max-width:860px){.main-grid{grid-template-columns:1fr}}
+  .task-list{list-style:none}
+  .task-item{display:flex;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f0f0f0;gap:10px}
+  .task-item:last-child{border-bottom:none}
+  .task-item .check-col{flex-shrink:0;padding-top:2px}
+  .task-item .check-col input[type=checkbox]{width:17px;height:17px;cursor:pointer;accent-color:#10b981}
+  .task-item .body-col{flex:1;min-width:0}
+  .task-item .body-col .name{font-size:14px;font-weight:500;word-break:break-word}
+  .task-item .body-col .name.done{text-decoration:line-through;color:#aaa}
+  .task-item .body-col .meta{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:5px;font-size:12px;color:#888}
+  .task-item .body-col .meta .tag{background:#eef2ff;color:#667eea;border-radius:4px;padding:1px 7px;font-size:11px;display:inline-block}
+  .task-item .body-col .meta .overdue{color:#ef4444;font-weight:600}
+  .task-item .actions-col{flex-shrink:0;display:flex;gap:4px;align-items:center}
+  .empty-tip{text-align:center;color:#aaa;padding:30px 0;font-size:14px}
+  .prio-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;flex-shrink:0}
+  .prio-dot.p1{background:#ef4444}
+  .prio-dot.p2{background:#f59e0b}
+  .prio-dot.p3{background:#9ca3af}
+  .stats{display:flex;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;font-size:13px;color:#666;flex-wrap:wrap}
+  .stats span strong{color:#333}
+  .summary-list{list-style:none}
+  .summary-item{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0f0f0;font-size:13px;gap:6px}
+  .summary-item:last-child{border-bottom:none}
+  .summary-item .name{flex:1;display:flex;align-items:center;gap:4px}
+  .summary-item .num{font-weight:600}
+  .summary-item .num.green{color:#10b981}
+  .summary-item .num.orange{color:#f59e0b}
+  .export-section{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  .export-section .info{font-size:13px;color:#666}
+  .export-section .info strong{color:#333}
+  .export-btns{display:flex;gap:8px;flex-wrap:wrap}
+  .toast{position:fixed;bottom:24px;right:24px;background:#333;color:white;padding:12px 22px;border-radius:10px;font-size:14px;opacity:0;transform:translateY(16px);transition:all .3s;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:999}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:1000;justify-content:center;align-items:center;padding:20px}
+  .modal-overlay.show{display:flex}
+  .modal-box{background:white;border-radius:16px;padding:24px;width:100%;max-width:440px;box-shadow:0 8px 32px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+  .modal-box h3{font-size:17px;font-weight:700;margin-bottom:16px}
+  .modal-box .field{margin-bottom:14px}
+  .modal-box .field label{display:block;font-size:12px;font-weight:600;color:#666;margin-bottom:4px}
+  .modal-box .field input,.modal-box .field select{width:100%;padding:10px 12px;border:1px solid #d0d5dd;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box}
+  .modal-box .field input:focus,.modal-box .field select:focus{border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,.15)}
+  .modal-box .modal-btns{display:flex;gap:10px;margin-top:4px;justify-content:flex-end}
+  .edit-tags-wrap{position:relative}
+  .edit-tags-trigger{display:flex;flex-wrap:wrap;gap:4px;padding:8px 10px;border:1px solid #d0d5dd;border-radius:8px;font-size:14px;cursor:pointer;background:#fafafa;min-height:38px;align-items:center}
+  .edit-tags-trigger:focus,.edit-tags-trigger.open{border-color:#667eea;background:white}
+  .edit-tags-trigger .placeholder{color:#bbb}
+  .edit-tag-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid #d0d5dd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:101;max-height:200px;overflow-y:auto;padding:6px 0}
+  .edit-tag-dropdown.show{display:block}
+  .edit-tag-dropdown .opt{padding:7px 14px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px}
+  .edit-tag-dropdown .opt:hover{background:#f5f5ff}
+  .edit-tag-dropdown .opt input[type=checkbox]{accent-color:#667eea;width:15px;height:15px}
+  .edit-tag-dropdown .opt .label{flex:1}
+  .edit-tag-dropdown .custom-add{display:flex;padding:7px 14px;gap:6px;border-top:1px solid #eee}
+  .edit-tag-dropdown .custom-add input{flex:1;border:1px solid #d0d5dd;border-radius:6px;padding:5px 8px;font-size:12px;outline:none;min-width:0}
+  .edit-tag-dropdown .custom-add input:focus{border-color:#667eea}
+  .lib-manager .tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #eee}
+  .lib-manager .tabs .tab{padding:8px 16px;cursor:pointer;font-size:14px;font-weight:600;color:#888;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+  .lib-manager .tabs .tab.active{color:#667eea;border-bottom-color:#667eea}
+  .lib-manager .tab-panel{display:none}
+  .lib-manager .tab-panel.show{display:block}
+  .lib-manager .panel-header{display:flex;gap:8px;margin-bottom:12px}
+  .lib-manager .panel-header input{flex:1;padding:8px 10px;border:1px solid #d0d5dd;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box}
+  .lib-manager .panel-header input:focus{border-color:#667eea}
+  .lib-manager .lib-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;gap:8px}
+  .lib-manager .lib-item:last-child{border-bottom:none}
+  .lib-manager .lib-item .name{flex:1;font-size:14px}
+  .lib-manager .lib-item .actns{display:flex;gap:4px}
+  .lib-manager .lib-list{max-height:300px;overflow-y:auto}
+  .loading-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.7);z-index:999;justify-content:center;align-items:center}
+  .loading-overlay.show{display:flex}
+  .spinner{width:36px;height:36px;border:3px solid #eef2ff;border-top:3px solid #667eea;border-radius:50%;animation:spin .6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/aipexbase-js/dist/aipexbase.umd.min.js"></script>
+</head>
+<body>
+<div class="app">
+
+<div class="header">
+  <h1>📋 工作待办追踪系统</h1>
+  <p>数据存储在云端 · 手机电脑同步 · 优先级 · 标签 · 筛选 · 周/月导出</p>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+
+<div class="date-bar">
+  <label>📅 日期</label>
+  <input type="date" id="curDate">
+  <span style="font-size:12px;color:#999" id="weekdayLabel"></span>
+  <span style="font-size:12px;color:#10b981;margin-left:auto" id="cloudStatus">☁️ 云端同步</span>
+</div>
+
+<div class="main-grid">
+<div class="card">
+  <div class="card-title">
+    📌 待办事项 <span class="badge" id="totalBadge">0 项</span>
+  </div>
+  <div class="filter-bar">
+    <span class="label">🔍 筛选</span>
+    <select id="filterStatus"><option value="all">全部状态</option><option value="pending">待完成</option><option value="done">已完成</option></select>
+    <select id="filterPriority"><option value="all">全部优先级</option><option value="p1">🔴 高</option><option value="p2">🟡 中</option><option value="p3">⚪ 低</option></select>
+    <select id="filterTag"><option value="all">全部标签</option></select>
+    <input type="date" id="filterDueFrom" title="截止开始">
+    <span style="color:#999;font-size:12px">~</span>
+    <input type="date" id="filterDueTo" title="截止结束">
+    <button class="btn btn-outline btn-xs" onclick="clearFilters()">清除</button>
+  </div>
+  <div class="add-row">
+    <div class="field" style="flex:1;min-width:160px">
+      <label>待办名称</label>
+      <div class="tag-select-wrap" id="taskNameWrap">
+        <div class="tag-select-trigger" id="taskNameTrigger" tabindex="0" onclick="toggleTaskNameDropdown()">
+          <span id="taskNameDisplay" style="color:#bbb;font-size:13px">点击选择或输入新名称</span>
+        </div>
+        <div class="tag-dropdown" id="taskNameDropdown">
+          <div id="taskNameOptList"></div>
+          <div class="custom-add">
+            <input type="text" id="taskNameCustomInput" placeholder="输入新名称..." onkeydown="if(event.key==='Enter'){addCustomTaskName();event.preventDefault()}">
+            <button class="btn btn-primary btn-xs" onclick="addCustomTaskName()">+ 新建</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>优先级</label>
+      <select id="taskPrio"><option value="p2">🟡 中</option><option value="p1">🔴 高</option><option value="p3">⚪ 低</option></select>
+    </div>
+    <div class="field">
+      <label>截止</label>
+      <input type="datetime-local" id="taskDue">
+    </div>
+    <div class="field" style="min-width:160px">
+      <label>标签</label>
+      <div class="tag-select-wrap" id="tagSelectWrap">
+        <div class="tag-select-trigger" id="tagTrigger" tabindex="0" onclick="toggleTagDropdown()">
+          <span id="tagChipsContainer"></span>
+          <span class="placeholder" id="tagPlaceholder">点击选择标签</span>
+        </div>
+        <div class="tag-dropdown" id="tagDropdown">
+          <div id="tagOptList"></div>
+          <div class="custom-add">
+            <input type="text" id="tagCustomInput" placeholder="新建标签..." onkeydown="if(event.key==='Enter'){addCustomTag();event.preventDefault()}">
+            <button class="btn btn-primary btn-xs" onclick="addCustomTag()">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="field" style="flex:1;min-width:120px">
+      <label>备注</label>
+      <input type="text" id="taskNote" placeholder="备注..." style="width:100%">
+    </div>
+    <div>
+      <button class="btn btn-primary" onclick="addTask()" style="margin-bottom:0">➕ 添加</button>
+      <button class="btn btn-outline btn-sm" onclick="openLibManager()" style="margin-bottom:0">📚 选项库</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:10px;font-size:12px;color:#888;align-items:center">
+    <span>排序：</span>
+    <select id="sortBy" onchange="renderTasks()" style="border:1px solid #d0d5dd;border-radius:6px;padding:4px 8px;font-size:12px;outline:none">
+      <option value="prio">优先级（高→低）</option>
+      <option value="due">截止时间（近→远）</option>
+      <option value="added">添加顺序</option>
+      <option value="alpha">名称</option>
+    </select>
+    <span style="margin-left:auto;color:#999" id="filteredCount"></span>
+  </div>
+  <ul class="task-list" id="taskList"><li class="empty-tip">😴 暂无待办</li></ul>
+  <div class="stats">
+    <span>✅ 已完成：<strong id="doneCount">0</strong></span>
+    <span>⏳ 待完成：<strong id="pendCount">0</strong></span>
+    <span>🔴 逾期：<strong id="overdueCount" style="color:#ef4444">0</strong></span>
+    <span>📊 完成率：<strong id="doneRate">0%</strong></span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">
+    📊 完成明细 <span class="badge green" id="summaryBadge">0 项</span>
+  </div>
+  <ul class="summary-list" id="summaryList"><li class="empty-tip">暂无数据</li></ul>
+  <div style="margin-top:14px">
+    <div class="card-title" style="margin-bottom:8px;font-size:14px">🏷️ 标签分布</div>
+    <div id="tagDistribution" style="font-size:13px;color:#666"></div>
+  </div>
+</div>
+</div>
+
+<div class="card">
+  <div class="export-section">
+    <div class="info">💾 导出工作报表 <strong>Excel (.xlsx)</strong></div>
+    <div class="export-btns">
+      <button class="btn btn-success btn-sm" onclick="exportExcel('day')">📅 导出今日</button>
+      <button class="btn btn-primary btn-sm" onclick="exportExcel('week')">📆 导出本周</button>
+      <button class="btn btn-primary btn-sm" onclick="exportExcel('month')">📆 导出本月</button>
+      <button class="btn btn-outline btn-sm" onclick="resetDay()">🔄 重置今日</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- 编辑弹窗 -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <h3>✏️ 编辑待办</h3>
+    <div class="field"><label>待办名称</label><input type="text" id="editName"></div>
+    <div class="field"><label>优先级</label><select id="editPrio"><option value="p1">🔴 高</option><option value="p2">🟡 中</option><option value="p3">⚪ 低</option></select></div>
+    <div class="field"><label>截止日期时间</label><input type="datetime-local" id="editDue"></div>
+    <div class="field">
+      <label>标签</label>
+      <div class="edit-tags-wrap" id="editTagWrap">
+        <div class="edit-tags-trigger" id="editTagTrigger" tabindex="0" onclick="toggleEditTagDropdown()">
+          <span id="editTagChipsContainer"></span>
+          <span class="placeholder" id="editTagPlaceholder">点击选择标签</span>
+        </div>
+        <div class="edit-tag-dropdown" id="editTagDropdown">
+          <div id="editTagOptList"></div>
+          <div class="custom-add">
+            <input type="text" id="editTagCustomInput" placeholder="新建标签..." onkeydown="if(event.key==='Enter'){addEditCustomTag();event.preventDefault()}">
+            <button class="btn btn-primary btn-xs" onclick="addEditCustomTag()">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="field"><label>备注</label><input type="text" id="editNote" style="width:100%"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeEditModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveEdit()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 确认弹窗 -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box" style="max-width:320px">
+    <h3 id="confirmTitle">⚠️ 确认操作</h3>
+    <p id="confirmMsg" style="font-size:15px;color:#555;margin:12px 0 20px"></p>
+    <div class="modal-btns">
+      <button class="btn btn-outline" id="confirmCancel">取消</button>
+      <button class="btn btn-danger" id="confirmOk">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 选项库管理弹窗 -->
+<div class="modal-overlay" id="libModal">
+  <div class="modal-box lib-manager">
+    <h3>📚 选项库管理</h3>
+    <div class="tabs">
+      <div class="tab active" onclick="switchLibTab('tasks',this)">📋 待办名称</div>
+      <div class="tab" onclick="switchLibTab('tags',this)">🏷️ 标签</div>
+    </div>
+    <div class="tab-panel show" id="libPanelTasks">
+      <div class="panel-header">
+        <input type="text" id="libNewTask" placeholder="新待办名称..." onkeydown="if(event.key==='Enter')addLibTask()">
+        <button class="btn btn-primary btn-sm" onclick="addLibTask()">添加</button>
+      </div>
+      <div class="lib-list" id="libTaskList"></div>
+    </div>
+    <div class="tab-panel" id="libPanelTags">
+      <div class="panel-header">
+        <input type="text" id="libNewTag" placeholder="新标签..." onkeydown="if(event.key==='Enter')addLibTag()">
+        <button class="btn btn-primary btn-sm" onclick="addLibTag()">添加</button>
+      </div>
+      <div class="lib-list" id="libTagList"></div>
+    </div>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="btn btn-outline" onclick="closeLibManager()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 密码锁弹窗 -->
+<div class="modal-overlay" id="lockModal">
+  <div class="modal-box" style="max-width:360px">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:40px;margin-bottom:8px">🔒</div>
+      <h3 id="lockTitle" style="margin:0">需要密码</h3>
+      <p id="lockMsg" style="font-size:13px;color:#888;margin-top:4px">请输入密码以访问待办系统</p>
+    </div>
+    <div class="field">
+      <label>密码</label>
+      <input type="password" id="lockInput" placeholder="输入密码..." onkeydown="if(event.key==='Enter')lockSubmit()" style="width:100%;padding:10px 12px;border:1px solid #d0d5dd;border-radius:8px;font-size:16px;outline:none;box-sizing:border-box">
+    </div>
+    <p id="lockError" style="color:#ef4444;font-size:13px;display:none;margin:-6px 0 10px">❌ 密码错误</p>
+    <div class="modal-btns">
+      <button class="btn btn-primary" onclick="lockSubmit()" style="width:100%;font-size:15px;padding:10px">🔓 解锁</button>
+    </div>
+    <p id="lockHint" style="font-size:11px;color:#bbb;text-align:center;margin-top:10px">首次访问将设置密码</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 云数据库初始化 =====
+const BASE_URL = 'https://baas.kuafuai.net/baas-api';
+const API_KEY = 'baas_lyQuG7BX';
+const client = aipexbase.createClient({ baseUrl: BASE_URL, apiKey: API_KEY });
+
+// ===== 本地选项库 =====
+const LS_LIB = 'cloud_task_lib';
+const LS_TAGS = 'cloud_tags';
+
+function getLib(){
+  let r=localStorage.getItem(LS_LIB);
+  if(r)try{return JSON.parse(r)}catch(e){}
+  return ['编写日报','编写周报','晨会汇报','代码 Review','功能开发','Bug 修复','单元测试','需求评审','技术方案设计','项目同步','客户沟通','文档编写','线上问题排查','性能优化','发布上线'];
+}
+function saveLib(l){localStorage.setItem(LS_LIB,JSON.stringify(l))}
+function getTagLib(){
+  let r=localStorage.getItem(LS_TAGS);
+  if(r)try{return JSON.parse(r)}catch(e){}
+  return ['开发','紧急','前端','后端','测试','文档','会议','沟通','设计','运维','产品','日常'];
+}
+function saveTagLib(t){localStorage.setItem(LS_TAGS,JSON.stringify(t))}
+
+// ===== 密码保护 =====
+// 密码存储在 localStorage 中（简单哈希，防君子不防小人）
+const PW_KEY='cloud_todo_pass';
+
+function getStoredHash(){return localStorage.getItem(PW_KEY)}
+function setStoredHash(h){localStorage.setItem(PW_KEY,h)}
+function simpleHash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return 'h'+h}
+
+let _lockResolve=null;
+
+function showLockScreen(){
+  return new Promise((resolve)=>{
+    _lockResolve=resolve;
+    const overlay=$('#lockModal');
+    overlay.classList.add('show');
+    const title=$('#lockTitle'), msg=$('#lockMsg'), hint=$('#lockHint'), inp=$('#lockInput'), err=$('#lockError');
+    const stored=getStoredHash();
+    if(stored){
+      title.textContent='🔒 需要密码';
+      msg.textContent='请输入密码以访问待办系统';
+      hint.textContent='';
+    } else {
+      title.textContent='🔐 首次使用，请设置密码';
+      msg.textContent='设置一个密码，以后访问都需要输入它';
+      hint.textContent='请牢记密码，不可找回';
+    }
+    inp.value='';err.style.display='none';inp.focus();
+  });
+}
+
+function lockSubmit(){
+  const inp=$('#lockInput'), err=$('#lockError');
+  const pwd=inp.value.trim();
+  if(!pwd){err.textContent='❌ 请输入密码';err.style.display='block';return}
+  const stored=getStoredHash();
+  if(stored){
+    if(simpleHash(pwd)===stored){
+      $('#lockModal').classList.remove('show');
+      if(_lockResolve)_lockResolve();
+    } else {
+      err.textContent='❌ 密码错误';err.style.display='block';inp.value='';
+    }
+  } else {
+    setStoredHash(simpleHash(pwd));
+    $('#lockModal').classList.remove('show');
+    if(_lockResolve)_lockResolve();
+  }
+}
+
+// ===== 工具函数 =====
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function toast(msg,color){
+  const t=$('#toast');
+  t.textContent=msg;
+  t.style.background=color||'#333';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function weekday(s){const d=new Date(s);return '星期'+['日','一','二','三','四','五','六'][d.getDay()]}
+
+function fmtDoneAt(iso){
+  if(!iso) return '';
+  const d=new Date(iso);
+  const pad=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function fmtDue(dueStr){
+  if(!dueStr) return '';
+  const parts=dueStr.split('T');
+  return parts.length<2?parts[0].replace(/-/g,'/'):parts[0].replace(/-/g,'/')+' '+parts[1];
+}
+
+// ===== 云端数据操作 =====
+let tasksCache=[]; // 当前日期的任务缓存
+let loading=false;
+
+function showLoading(){loading=true;$('#loadingOverlay').classList.add('show')}
+function hideLoading(){loading=false;$('#loadingOverlay').classList.remove('show')}
+
+async function loadTasks(dateStr){
+  try {
+    showLoading();
+    const res = await client.db.from('tasks').list().eq('task_date', dateStr);
+    if (res.success && Array.isArray(res.data)) {
+      tasksCache = res.data.map(t => ({
+        id: t.id,
+        name: t.name || '',
+        prio: t.prio || 'p2',
+        due: t.due || '',
+        tags: safeParseTags(t.tags),
+        note: t.note || '',
+        done: t.done === 'true',
+        doneAt: t.done_at || null,
+        ts: t.ts || ''
+      }));
+    } else {
+      tasksCache = [];
+    }
+  } catch(e) {
+    console.error('加载失败:', e);
+    toast('☁️ 加载数据失败，请检查网络','#ef4444');
+    tasksCache = [];
+  } finally {
+    hideLoading();
+  }
+  return tasksCache;
+}
+
+function safeParseTags(v){
+  if(!v) return [];
+  try{return JSON.parse(v)}catch(e){return [v]}
+}
+
+async function saveTaskToCloud(task){
+  try {
+    const data = {
+      task_date: task.task_date,
+      name: task.name,
+      prio: task.prio,
+      due: task.due || '',
+      tags: JSON.stringify(task.tags || []),
+      note: task.note || '',
+      done: task.done ? 'true' : 'false',
+      done_at: task.doneAt || '',
+      ts: task.ts || new Date().toISOString()
+    };
+    if (task.id) {
+      await client.db.from('tasks').update().set(data).eq('id', task.id);
+    } else {
+      const res = await client.db.from('tasks').insert().values(data);
+      if (res.success) task.id = res.data;
+    }
+  } catch(e) {
+    console.error('保存失败:', e);
+    throw e;
+  }
+}
+
+async function deleteTaskFromCloud(id){
+  try {
+    await client.db.from('tasks').delete().eq('id', id);
+  } catch(e) {
+    console.error('删除失败:', e);
+    throw e;
+  }
+}
+
+// ===== DOM refs =====
+const dateIn=$('#curDate');
+const sortBy=$('#sortBy');
+const filterStatus=$('#filterStatus'), filterPriority=$('#filterPriority'), filterTag=$('#filterTag');
+const filterDueFrom=$('#filterDueFrom'), filterDueTo=$('#filterDueTo');
+const taskPrio=$('#taskPrio'), taskDue=$('#taskDue'), taskNote=$('#taskNote');
+const taskList=$('#taskList'), summaryList=$('#summaryList');
+const totalBadge=$('#totalBadge'), doneCount=$('#doneCount'), pendCount=$('#pendCount'), overdueCount=$('#overdueCount'), doneRate=$('#doneRate');
+const summaryBadge=$('#summaryBadge'), filteredCount=$('#filteredCount');
+
+// ===== 标签选择 =====
+let selectedTags=[];
+const tagTrigger=$('#tagTrigger'), tagDropdown=$('#tagDropdown'), tagPlaceholder=$('#tagPlaceholder'), tagOptList=$('#tagOptList'), tagCustomInput=$('#tagCustomInput'), tagChipsContainer=$('#tagChipsContainer');
+
+function toggleTagDropdown(){
+  const show=tagDropdown.classList.toggle('show');
+  if(show){renderTagOptions();tagCustomInput.focus()}
+}
+function renderTagOptions(){
+  const all=getTagLib();
+  tagOptList.innerHTML=all.map(t=>{
+    const checked=selectedTags.includes(t)?'checked':'';
+    return `<div class="opt"><input type="checkbox" ${checked} data-tag="${escHtml(t)}" onchange="toggleTagOpt(this.dataset.tag)"><span class="label">${escHtml(t)}</span></div>`;
+  }).join('');
+}
+function toggleTagOpt(tag){
+  const idx=selectedTags.indexOf(tag);
+  if(idx>-1) selectedTags.splice(idx,1);else selectedTags.push(tag);
+  renderTagChips();renderTagOptions();
+}
+function addCustomTag(){
+  const v=tagCustomInput.value.trim();
+  if(!v) return;
+  const all=getTagLib();
+  if(!all.includes(v)){all.push(v);saveTagLib(all)}
+  if(!selectedTags.includes(v)) selectedTags.push(v);
+  tagCustomInput.value='';renderTagChips();renderTagOptions();
+}
+function renderTagChips(){
+  tagChipsContainer.innerHTML=selectedTags.map(t=>`<span class="tag-chip">${escHtml(t)}<span class="remove" data-tag="${escHtml(t)}" onclick="removeTag(this.dataset.tag);event.stopPropagation()">×</span></span>`).join('');
+  tagPlaceholder.style.display=selectedTags.length===0?'':'none';
+}
+function removeTag(tag){selectedTags=selectedTags.filter(t=>t!==tag);renderTagChips();renderTagOptions()}
+function resetTagPicker(){selectedTags=[];renderTagChips()}
+
+// ===== 待办名称下拉 =====
+let _selectedTaskName='';
+function toggleTaskNameDropdown(){
+  const dd=$('#taskNameDropdown');
+  dd.classList.toggle('show');
+  renderTaskNameOptions();
+  if(dd.classList.contains('show')&&!_selectedTaskName) $('#taskNameCustomInput').focus();
+}
+function renderTaskNameOptions(){
+  const lib=getLib();
+  const html=lib.length===0?'<div class="opt" style="color:#aaa;justify-content:center">暂无选项，请在下方新建</div>':
+    lib.map(t=>{
+      const active=_selectedTaskName===t?'style="background:#eef2ff"':'';
+      return `<div class="opt" ${active} onclick="selectTaskName('${escHtml(t)}')"><span class="label">${escHtml(t)}</span></div>`;
+    }).join('');
+  $('#taskNameOptList').innerHTML=html;
+}
+function selectTaskName(n){_selectedTaskName=n;renderTaskNameTrigger();renderTaskNameOptions();$('#taskNameDropdown').classList.remove('show')}
+function addCustomTaskName(){
+  const v=$('#taskNameCustomInput').value.trim();
+  if(!v){toast('请输入名称','#f59e0b');return}
+  const lib=getLib();
+  if(!lib.includes(v)){lib.push(v);saveLib(lib)}
+  _selectedTaskName=v;$('#taskNameCustomInput').value='';renderTaskNameTrigger();renderTaskNameOptions();$('#taskNameDropdown').classList.remove('show')
+}
+function renderTaskNameTrigger(){
+  const d=$('#taskNameDisplay');
+  if(_selectedTaskName){d.textContent=_selectedTaskName;d.style.color='#333';d.style.fontWeight='500'}
+  else{d.textContent='点击选择或输入新名称';d.style.color='#bbb';d.style.fontWeight='normal'}
+}
+
+// ===== 核心渲染 =====
+async function renderAll(){
+  await loadTasks(dateIn.value);
+  renderTaskNameOptions();
+  renderTasks();
+}
+
+function getVisibleTasks(){
+  const st=filterStatus.value, pr=filterPriority.value, tg=filterTag.value;
+  const df=filterDueFrom.value, dt=filterDueTo.value;
+  let filtered=tasksCache.filter(t=>{
+    if(st==='pending'&&t.done)return false;
+    if(st==='done'&&!t.done)return false;
+    if(pr!=='all'&&t.prio!==pr)return false;
+    if(tg!=='all'){
+      const tags=(t.tags||[]).map(x=>x.trim().toLowerCase());
+      if(!tags.includes(tg.toLowerCase()))return false;
+    }
+    if(df&&t.due&&t.due<df)return false;
+    if(dt&&t.due&&t.due>dt)return false;
+    return true;
+  });
+  const s=sortBy.value;
+  filtered.sort((a,b)=>{
+    if(s==='prio'){const r={p1:0,p2:1,p3:2};return(r[a.prio]??1)-(r[b.prio]??1)}
+    if(s==='due'){
+      if(!a.due&&!b.due)return 0;
+      if(!a.due)return 1;if(!b.due)return -1;
+      return a.due.localeCompare(b.due);
+    }
+    if(s==='alpha')return a.name.localeCompare(b.name);
+    return 0;
+  });
+  return filtered;
+}
+
+function isOverdue(task){
+  if(task.done||!task.due)return false;
+  const due=new Date(task.due);
+  if(isNaN(due.getTime()))return false;
+  return due<new Date();
+}
+
+function renderTasks(){
+  const visible=getVisibleTasks();
+  if(visible.length===0){
+    taskList.innerHTML='<li class="empty-tip">😴 没有匹配的待办</li>';
+  } else {
+    taskList.innerHTML=visible.map(t=>{
+      const od=isOverdue(t);
+      const nameCls=t.done?'name done':'name';
+      const prioLabel={p1:'🔴 高',p2:'🟡 中',p3:'⚪ 低'}[t.prio]||'🟡 中';
+      const dueStr=fmtDue(t.due);
+      return `<li class="task-item" data-id="${t.id}">
+        <div class="check-col"><input type="checkbox" ${t.done?'checked':''} onchange="toggleDone(${t.id})"></div>
+        <div class="body-col">
+          <div class="${nameCls}"><span class="prio-dot ${t.prio||'p2'}"></span>${escHtml(t.name)}</div>
+          <div class="meta">
+            <span>${prioLabel}</span>
+            ${dueStr?`<span>📅 ${dueStr}${od?' <span class="overdue">⚠️ 已逾期</span>':''}</span>`:''}
+            ${(t.tags||[]).filter(x=>x.trim()).map(x=>`<span class="tag">${escHtml(x)}</span>`).join('')}
+            ${t.note?`<span style="font-size:11px;color:#999">📝 ${escHtml(t.note)}</span>`:''}
+            ${t.done&&t.doneAt?`<span style="font-size:11px;color:#10b981">✅ ${fmtDoneAt(t.doneAt)}</span>`:''}
+          </div>
+        </div>
+        <div class="actions-col">
+          <button class="btn-ghost" onclick="editTask(${t.id})">✏️</button>
+          <button class="btn-ghost" onclick="deleteTask(${t.id})">🗑️</button>
+        </div>
+      </li>`;
+    }).join('');
+  }
+  updateStats();
+  updateSummary();
+  updateFilters();
+  filteredCount.textContent=visible.length!==tasksCache.length?`（筛选后 ${visible.length}/${tasksCache.length}）`:'';
+}
+
+function updateStats(){
+  const done=tasksCache.filter(t=>t.done).length;
+  const total=tasksCache.length;
+  doneCount.textContent=done;
+  pendCount.textContent=total-done;
+  overdueCount.textContent=tasksCache.filter(t=>isOverdue(t)).length;
+  doneRate.textContent=total>0?Math.round(done/total*100)+'%':'0%';
+  totalBadge.textContent=total+' 项';
+}
+
+function updateSummary(){
+  const map={};
+  tasksCache.forEach(t=>{
+    if(!map[t.name])map[t.name]={name:t.name,prio:t.prio||'p2',total:0,done:0};
+    map[t.name].total++;if(t.done)map[t.name].done++;
+  });
+  const entries=Object.values(map);
+  if(entries.length===0){
+    summaryList.innerHTML='<li class="empty-tip">暂无数据</li>';
+    summaryBadge.textContent='0 项';
+  } else {
+    summaryBadge.textContent=entries.length+' 项';
+    summaryList.innerHTML=entries.map(e=>{
+      const pct=e.total>0?Math.round(e.done/e.total*100):0;
+      return `<li class="summary-item"><span class="name"><span class="prio-dot ${e.prio}"></span>${escHtml(e.name)}</span><span class="num green">✅${e.done}</span><span class="num orange">⏳${e.total-e.done}</span><span style="font-size:11px;color:#999;min-width:32px;text-align:right">${pct}%</span></li>`;
+    }).join('');
+  }
+  const tagMap={};
+  tasksCache.forEach(t=>(t.tags||[]).forEach(tg=>{const k=tg.trim();if(!k)return;if(!tagMap[k])tagMap[k]={total:0,done:0};tagMap[k].total++;if(t.done)tagMap[k].done++}));
+  const tagEntries=Object.entries(tagMap);
+  $('#tagDistribution').innerHTML=tagEntries.length===0?'暂无标签':
+    tagEntries.map(([k,v])=>`<span style="display:inline-block;background:#f3f4f6;border-radius:6px;padding:2px 10px;margin:2px 3px;font-size:12px">${escHtml(k)} ${v.done}/${v.total}</span>`).join('');
+}
+
+function updateFilters(){
+  const tagSet=new Set();
+  tasksCache.forEach(t=>(t.tags||[]).forEach(tg=>{const k=tg.trim();if(k)tagSet.add(k)}));
+  const cur=filterTag.value;
+  filterTag.innerHTML='<option value="all">全部标签</option>'+[...tagSet].sort().map(t=>`<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
+  filterTag.value=tagSet.has(cur)?cur:'all';
+}
+
+// ===== 操作 =====
+async function addTask(){
+  const name=_selectedTaskName.trim();
+  if(!name){toast('请选择或输入待办名称','#f59e0b');return}
+  try {
+    const task = {
+      task_date: dateIn.value,
+      name, prio: taskPrio.value, due: taskDue.value||'',
+      tags: [...selectedTags], note: taskNote.value.trim(),
+      done: false, doneAt: null, ts: new Date().toISOString()
+    };
+    await saveTaskToCloud(task);
+    const lib=getLib();
+    if(!lib.includes(name)){lib.push(name);saveLib(lib)}
+    _selectedTaskName='';renderTaskNameTrigger();taskDue.value='';taskNote.value='';resetTagPicker();
+    await renderAll();
+    toast('✅ 已添加：'+name,'#10b981');
+  } catch(e) {
+    toast('☁️ 保存失败，请重试','#ef4444');
+  }
+}
+
+async function toggleDone(id){
+  const t=tasksCache.find(x=>x.id===id);
+  if(!t)return;
+  t.done=!t.done;
+  t.doneAt=t.done?new Date().toISOString():null;
+  try {
+    await client.db.from('tasks').update().set({done:t.done?'true':'false', done_at:t.doneAt||''}).eq('id',id);
+    renderTasks();
+  } catch(e) {
+    toast('☁️ 更新失败','#ef4444');
+    t.done=!t.done;t.doneAt=t.done?new Date().toISOString():null;
+  }
+}
+
+async function deleteTask(id){
+  const t=tasksCache.find(x=>x.id===id);
+  if(!t)return;
+  showConfirm('删除确认','删除 "'+t.name+'" ？此操作不可恢复。','删除',async()=>{
+    try {
+      await deleteTaskFromCloud(id);
+      tasksCache=tasksCache.filter(x=>x.id!==id);
+      renderTasks();
+      toast('已删除：'+t.name,'#ef4444');
+    } catch(e) {
+      toast('☁️ 删除失败','#ef4444');
+    }
+  });
+}
+
+// ===== 编辑弹窗 =====
+let _editId=null,_editTags=[];
+function editTask(id){
+  const t=tasksCache.find(x=>x.id===id);
+  if(!t)return;
+  _editId=id;$('#editName').value=t.name;$('#editPrio').value=t.prio||'p2';$('#editDue').value=t.due||'';$('#editNote').value=t.note||'';
+  _editTags=[...(t.tags||[])];renderEditTagChips();$('#editModal').classList.add('show');
+}
+function closeEditModal(){$('#editModal').classList.remove('show');_editId=null;$('.edit-tag-dropdown').classList.remove('show')}
+async function saveEdit(){
+  if(_editId===null)return;
+  const t=tasksCache.find(x=>x.id===_editId);
+  if(!t){closeEditModal();return}
+  const name=$('#editName').value.trim();
+  if(!name){toast('请输入名称','#f59e0b');return}
+  t.name=name;t.prio=$('#editPrio').value;t.due=$('#editDue').value||'';t.tags=[..._editTags];t.note=$('#editNote').value.trim();
+  try {
+    await saveTaskToCloud(t);
+    const lib=getLib();
+    if(!lib.includes(name)){lib.push(name);saveLib(lib)}
+    closeEditModal();renderTasks();toast('✏️ 已更新','#667eea');
+  } catch(e) {
+    toast('☁️ 更新失败','#ef4444');
+  }
+}
+function toggleEditTagDropdown(){const dd=$('.edit-tag-dropdown');dd.classList.toggle('show');renderEditTagOptions();if(dd.classList.contains('show'))$('#editTagCustomInput').focus()}
+function renderEditTagOptions(){
+  const all=getTagLib();
+  $('#editTagOptList').innerHTML=all.map(t=>{
+    const checked=_editTags.includes(t)?'checked':'';
+    return `<div class="opt"><input type="checkbox" ${checked} data-tag="${escHtml(t)}" onchange="toggleEditTag(this.dataset.tag)"><span class="label">${escHtml(t)}</span></div>`;
+  }).join('');
+}
+function toggleEditTag(tag){const idx=_editTags.indexOf(tag);if(idx>-1)_editTags.splice(idx,1);else _editTags.push(tag);renderEditTagChips();renderEditTagOptions()}
+function addEditCustomTag(){
+  const v=$('#editTagCustomInput').value.trim();
+  if(!v)return;const all=getTagLib();
+  if(!all.includes(v)){all.push(v);saveTagLib(all)}
+  if(!_editTags.includes(v))_editTags.push(v);
+  $('#editTagCustomInput').value='';renderEditTagChips();renderEditTagOptions()
+}
+function renderEditTagChips(){
+  $('#editTagChipsContainer').innerHTML=_editTags.map(t=>`<span class="tag-chip">${escHtml(t)}<span class="remove" data-tag="${escHtml(t)}" onclick="removeEditTag(this.dataset.tag);event.stopPropagation()">×</span></span>`).join('');
+  $('#editTagPlaceholder').style.display=_editTags.length===0?'':'none';
+}
+function removeEditTag(tag){_editTags=_editTags.filter(t=>t!==tag);renderEditTagChips();renderEditTagOptions()}
+
+// ===== 选项库管理 =====
+let _libEditIdx={tasks:null,tags:null};
+function openLibManager(){_libEditIdx={tasks:null,tags:null};renderLibTasks();renderLibTags();$('#libModal').classList.add('show')}
+function closeLibManager(){$('#libModal').classList.remove('show');renderAll()}
+function switchLibTab(tab,el){$$('.lib-manager .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');$$('.lib-manager .tab-panel').forEach(p=>p.classList.remove('show'));$('#libPanel'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('show')}
+function renderLibTasks(){
+  const lib=getLib();
+  if(lib.length===0){$('#libTaskList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">暂无</div>';return}
+  $('#libTaskList').innerHTML=lib.map((t,i)=>`<div class="lib-item"><span class="name">${escHtml(t)}</span><div class="actns"><button class="btn btn-outline btn-xs" onclick="editLibTask(${i})">✏️</button><button class="btn btn-danger btn-xs" onclick="deleteLibTask(${i})">🗑️</button></div></div>`).join('');
+}
+function renderLibTags(){
+  const lib=getTagLib();
+  if(lib.length===0){$('#libTagList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">暂无</div>';return}
+  $('#libTagList').innerHTML=lib.map((t,i)=>`<div class="lib-item"><span class="name">${escHtml(t)}</span><div class="actns"><button class="btn btn-outline btn-xs" onclick="editLibTag(${i})">✏️</button><button class="btn btn-danger btn-xs" onclick="deleteLibTag(${i})">🗑️</button></div></div>`).join('');
+}
+function addLibTask(){
+  const v=$('#libNewTask').value.trim();if(!v){toast('请输入名称','#f59e0b');return}
+  const lib=getLib();const idx=_libEditIdx.tasks;
+  if(idx!==null){if(lib[idx]!==v&&lib.includes(v)){toast('已存在其他同名项','#f59e0b');return}lib[idx]=v;_libEditIdx.tasks=null}
+  else{if(lib.includes(v)){toast('已存在','#f59e0b');return}lib.push(v)}
+  saveLib(lib);$('#libNewTask').value='';renderLibTasks();toast(idx!==null?'✏️ 已修改':'✅ 已添加','#10b981')
+}
+function addLibTag(){
+  const v=$('#libNewTag').value.trim();if(!v){toast('请输入标签','#f59e0b');return}
+  const lib=getTagLib();const idx=_libEditIdx.tags;
+  if(idx!==null){if(lib[idx]!==v&&lib.includes(v)){toast('已存在其他同名项','#f59e0b');return}lib[idx]=v;_libEditIdx.tags=null}
+  else{if(lib.includes(v)){toast('已存在','#f59e0b');return}lib.push(v)}
+  saveTagLib(lib);$('#libNewTag').value='';renderLibTags();toast(idx!==null?'✏️ 已修改':'✅ 已添加','#10b981')
+}
+function deleteLibTask(idx){const lib=getLib();showConfirm('删除确认','删除 "'+lib[idx]+'" ？','删除',()=>{lib.splice(idx,1);saveLib(lib);renderLibTasks();toast('已删除','#ef4444')})}
+function deleteLibTag(idx){const lib=getTagLib();showConfirm('删除确认','删除 "'+lib[idx]+'" ？','删除',()=>{lib.splice(idx,1);saveTagLib(lib);renderLibTags();toast('已删除','#ef4444')})}
+function editLibTask(idx){_libEditIdx.tasks=idx;const inp=$('#libNewTask');inp.value=getLib()[idx];inp.focus();inp.select()}
+function editLibTag(idx){_libEditIdx.tags=idx;const inp=$('#libNewTag');inp.value=getTagLib()[idx];inp.focus();inp.select()}
+
+// ===== 确认弹窗 =====
+let _confirmCallback=null;
+function showConfirm(title,msg,okText,cb){
+  $('#confirmTitle').textContent=title;$('#confirmMsg').textContent=msg;$('#confirmOk').textContent=okText;
+  _confirmCallback=cb;$('#confirmModal').classList.add('show')
+}
+function doConfirm(yes){$('#confirmModal').classList.remove('show');if(yes&&_confirmCallback)_confirmCallback();_confirmCallback=null}
+
+// ===== 筛选 & 排序 =====
+function clearFilters(){filterStatus.value='all';filterPriority.value='all';filterTag.value='all';filterDueFrom.value='';filterDueTo.value='';renderTasks()}
+async function resetDay(){
+  const d=dateIn.value;
+  showConfirm('重置确认','确定清空 '+d+' 的所有待办？','清空',async()=>{
+    try {
+      const toDel=tasksCache.filter(t=>t.id).map(t=>t.id);
+      for(const id of toDel) await deleteTaskFromCloud(id);
+      await renderAll();
+      toast('已重置','#f59e0b');
+    } catch(e) {toast('☁️ 重置失败','#ef4444')}
+  });
+}
+
+// ===== 导出 =====
+function getDateRange(mode){
+  const d=new Date(dateIn.value);
+  const y=d.getFullYear(),m=d.getMonth()+1,day=d.getDate();
+  if(mode==='day') return {from:dateIn.value,to:dateIn.value,label:dateIn.value};
+  if(mode==='week'){
+    const dow=d.getDay();const diff=(dow===0?6:dow-1);
+    const mon=new Date(d);mon.setDate(day-diff);
+    const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+    return {from:fmtDate(mon),to:fmtDate(sun),label:fmtDate(mon)+'~'+fmtDate(sun)};
+  }
+  const first=fmtDate(new Date(y,m-1,1)),last=fmtDate(new Date(y,m,0));
+  return {from:first,to:last,label:y+'-'+String(m).padStart(2,'0')};
+}
+function fmtDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+
+async function collectRangeData(from,to){
+  const rows=[];let seq=0;
+  const cur=new Date(from+'T00:00:00');const end=new Date(to+'T00:00:00');
+  while(cur<=end){
+    const s=fmtDate(cur);
+    try {
+      const res=await client.db.from('tasks').list().eq('task_date',s);
+      if(res.success&&Array.isArray(res.data)){
+        res.data.forEach(t=>{
+          seq++;
+          const tags=[];try{tags.push(...JSON.parse(t.tags||'[]'))}catch(e){}
+          rows.push({
+            date:s,weekday:weekday(s),seq,
+            name:t.name||'',prio:{p1:'高',p2:'中',p3:'低'}[t.prio]||'中',
+            due:t.due||'',tags:tags.join('; '),note:t.note||'',
+            status:t.done==='true'?'已完成':'待完成',
+            doneAt:t.done_at?fmtDoneAt(t.done_at):''
+          });
+        });
+      }
+    } catch(e) {}
+    cur.setDate(cur.getDate()+1);
+  }
+  return rows;
+}
+
+async function exportExcel(mode){
+  showLoading();
+  const r=getDateRange(mode);
+  const data=await collectRangeData(r.from,r.to);
+  hideLoading();
+  if(data.length===0){toast('所选范围内无数据','#f59e0b');return}
+  const aoa=[
+    ['工作待办报表'],['范围',r.label,'导出时间',new Date().toLocaleString('zh-CN')],[],
+    ['日期','星期','序号','待办事项','优先级','截止日期时间','标签','备注','状态','完成时间']
+  ];
+  data.forEach(d=>{aoa.push([d.date,d.weekday,d.seq,d.name,d.prio,d.due,d.tags,d.note,d.status,d.doneAt])});
+  const done=data.filter(d=>d.status==='已完成').length,total=data.length;
+  aoa.push([]);aoa.push(['统计']);aoa.push(['总事项',total,'已完成',done,'待完成',total-done,'完成率',total>0?Math.round(done/total*100)+'%':'0%']);
+  loadSheetAndExport(aoa,`工作待办_${r.label}.xlsx`);
+}
+
+function loadSheetAndExport(aoa,filename){
+  if(typeof XLSX!=='undefined'){doExport(aoa,filename);return}
+  const s=document.createElement('script');
+  s.src='https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
+  s.onload=()=>doExport(aoa,filename);
+  s.onerror=()=>{toast('加载导出库失败，改用 CSV','#f59e0b');exportCSV(aoa,filename)};
+  document.head.appendChild(s);
+}
+function doExport(aoa,filename){
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:12},{wch:6},{wch:6},{wch:22},{wch:8},{wch:16},{wch:20},{wch:24},{wch:10},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws,'工作待办');
+  XLSX.writeFile(wb,filename);
+  toast('📥 已导出：'+filename,'#10b981');
+}
+function exportCSV(aoa,filename){
+  let csv='';aoa.forEach(row=>{csv+=row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')+'\n'});
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename.replace('.xlsx','.csv');
+  a.click();URL.revokeObjectURL(a.href);toast('📥 已导出 CSV','#10b981')
+}
+
+// ===== 事件绑定 =====
+dateIn.addEventListener('change',()=>{weekdayLabel.textContent=weekday(dateIn.value);renderAll()});
+filterStatus.addEventListener('change',renderTasks);
+filterPriority.addEventListener('change',renderTasks);
+filterTag.addEventListener('change',renderTasks);
+filterDueFrom.addEventListener('change',renderTasks);
+filterDueTo.addEventListener('change',renderTasks);
+sortBy.addEventListener('change',renderTasks);
+document.addEventListener('click',function(e){
+  if(e.target.id==='confirmOk')doConfirm(true);
+  if(e.target.id==='confirmCancel'||e.target.classList.contains('modal-overlay')){if(e.target.id==='confirmCancel'||e.target.id==='confirmModal')doConfirm(false)}
+  const w=$('#tagSelectWrap');if(!w.contains(e.target))tagDropdown.classList.remove('show');
+  const ew=$('#editTagWrap');if(!ew.contains(e.target))$('.edit-tag-dropdown').classList.remove('show');
+  const nw=$('#taskNameWrap');if(!nw.contains(e.target))$('#taskNameDropdown').classList.remove('show');
+  if(e.target.classList.contains('modal-overlay')){if(e.target.id!=='confirmModal')closeEditModal()}
+});
+
+// ===== 初始化 =====
+(async function init(){
+  // 先弹密码锁
+  await showLockScreen();
+  // 再加载数据
+  const d=todayStr();dateIn.value=d;weekdayLabel.textContent=weekday(d);
+  await renderAll();
+})();
+</script>
+</body>
+</html>
