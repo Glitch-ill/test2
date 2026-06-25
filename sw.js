@@ -1,5 +1,5 @@
 // 工作待办追踪系统 - Service Worker (PWA)
-const CACHE_NAME = 'task-tracker-v2';
+const CACHE_NAME = 'task-tracker-v3';
 const ASSETS = [
   '/test2/',
   '/test2/index.html',
