@@ -354,19 +354,23 @@
 <div class="modal-overlay" id="lockModal">
   <div class="modal-box" style="max-width:360px">
     <div style="text-align:center;margin-bottom:16px">
-      <div style="font-size:40px;margin-bottom:8px">🔒</div>
-      <h3 id="lockTitle" style="margin:0">需要密码</h3>
-      <p id="lockMsg" style="font-size:13px;color:#888;margin-top:4px">请输入密码以访问待办系统</p>
+      <div style="font-size:40px;margin-bottom:8px" id="lockIcon">🔐</div>
+      <h3 id="lockTitle" style="margin:0">登录</h3>
+      <p id="lockSubtitle" style="font-size:13px;color:#888;margin-top:4px">输入账号密码访问待办系统</p>
+    </div>
+    <div class="field">
+      <label>用户名</label>
+      <input type="text" id="lockInput" placeholder="用户名..." style="width:100%;padding:10px 12px;border:1px solid #d0d5dd;border-radius:8px;font-size:16px;outline:none;box-sizing:border-box">
     </div>
     <div class="field">
       <label>密码</label>
-      <input type="password" id="lockInput" placeholder="输入密码..." onkeydown="if(event.key==='Enter')lockSubmit()" style="width:100%;padding:10px 12px;border:1px solid #d0d5dd;border-radius:8px;font-size:16px;outline:none;box-sizing:border-box">
+      <input type="password" id="lockPwd" placeholder="密码..." style="width:100%;padding:10px 12px;border:1px solid #d0d5dd;border-radius:8px;font-size:16px;outline:none;box-sizing:border-box">
     </div>
-    <p id="lockError" style="color:#ef4444;font-size:13px;display:none;margin:-6px 0 10px">❌ 密码错误</p>
+    <p id="lockError" style="color:#ef4444;font-size:13px;margin:-6px 0 10px;text-align:center">&nbsp;</p>
     <div class="modal-btns">
-      <button class="btn btn-primary" onclick="lockSubmit()" style="width:100%;font-size:15px;padding:10px">🔓 解锁</button>
+      <button class="btn btn-primary" id="lockBtn" style="width:100%;font-size:15px;padding:10px">登 录</button>
     </div>
-    <p id="lockHint" style="font-size:11px;color:#bbb;text-align:center;margin-top:10px">首次访问将设置密码</p>
+    <p id="lockSwitch" style="font-size:13px;color:#888;text-align:center;margin-top:12px"></p>
   </div>
 </div>
 
@@ -405,56 +409,132 @@ function getTagLib(){
 }
 function saveTagLib(t){localStorage.setItem(LS_TAGS,JSON.stringify(t))}
 
-// ===== 密码保护 =====
-// 密码存储在 localStorage 中（简单哈希，防君子不防小人）
-const PW_KEY='cloud_todo_pass';
+// ===== 用户账号系统 =====
+const USER_KEY = 'cloud_todo_user';
 
-function getStoredHash(){return localStorage.getItem(PW_KEY)}
-function setStoredHash(h){localStorage.setItem(PW_KEY,h)}
+function getCurrentUser(){let r=localStorage.getItem(USER_KEY);if(r)try{return JSON.parse(r)}catch(e){}return null}
+function setCurrentUser(u){localStorage.setItem(USER_KEY,JSON.stringify(u))}
+function clearCurrentUser(){localStorage.removeItem(USER_KEY)}
+
+async function registerUser(username, password){
+  // 检查用户名是否已存在
+  const existing = await client.db.from('users').list().eq('username', username);
+  if(existing.success && existing.data && existing.data.length > 0){
+    return {ok:false, msg:'用户名已被注册'}
+  }
+  const hash = simpleHash(password);
+  const res = await client.db.from('users').insert().values({username, password: hash, created_at: new Date().toISOString()});
+  if(res.success){
+    return {ok:true, user:{id:res.data, username}}
+  }
+  return {ok:false, msg:'注册失败，请重试'}
+}
+
+async function loginUser(username, password){
+  const res = await client.db.from('users').list().eq('username', username);
+  if(!res.success || !res.data || res.data.length === 0){
+    return {ok:false, msg:'用户名或密码错误'}
+  }
+  const user = res.data[0];
+  const hash = simpleHash(password);
+  if(user.password !== hash){
+    return {ok:false, msg:'用户名或密码错误'}
+  }
+  return {ok:true, user:{id:user.id, username:user.username}}
+}
+
 function simpleHash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return 'h'+h}
 
 let _lockResolve=null;
+let _userData=null;
 
 function showLockScreen(){
   return new Promise((resolve)=>{
     _lockResolve=resolve;
     const overlay=$('#lockModal');
     overlay.classList.add('show');
-    const title=$('#lockTitle'), msg=$('#lockMsg'), hint=$('#lockHint'), inp=$('#lockInput'), err=$('#lockError');
-    const stored=getStoredHash();
-    if(stored){
-      title.textContent='🔒 需要密码';
-      msg.textContent='请输入密码以访问待办系统';
-      hint.textContent='';
-    } else {
-      title.textContent='🔐 首次使用，请设置密码';
-      msg.textContent='设置一个密码，以后访问都需要输入它';
-      hint.textContent='请牢记密码，不可找回';
-    }
-    inp.value='';err.style.display='none';inp.focus();
+    // 默认显示登录
+    showLoginForm();
   });
 }
 
-function lockSubmit(){
-  const inp=$('#lockInput'), err=$('#lockError');
-  const pwd=inp.value.trim();
-  if(!pwd){err.textContent='❌ 请输入密码';err.style.display='block';return}
-  const stored=getStoredHash();
-  if(stored){
-    if(simpleHash(pwd)===stored){
-      $('#lockModal').classList.remove('show');
-      if(_lockResolve)_lockResolve();
-    } else {
-      err.textContent='❌ 密码错误';err.style.display='block';inp.value='';
-    }
-  } else {
-    setStoredHash(simpleHash(pwd));
+function showLoginForm(){
+  $('#lockTitle').textContent='🔐 登录';
+  $('#lockSubtitle').textContent='输入账号密码访问待办系统';
+  $('#lockError').textContent='';
+  $('#lockInput').style.display='block';
+  $('#lockInput').placeholder='用户名';
+  $('#lockInput').value='';
+  $('#lockPwd').style.display='block';
+  $('#lockPwd').placeholder='密码';
+  $('#lockPwd').value='';
+  $('#lockPwd').type='password';
+  $('#lockBtn').textContent='登 录';
+  $('#lockBtn').onclick=doLogin;
+  $('#lockSwitch').innerHTML='还没有账号？<a href="#" onclick="showRegisterForm();return false">立即注册</a>';
+  $('#lockInput').focus();
+  _mode='login';
+  // 回车键登录
+  $('#lockInput').onkeydown=function(e){if(e.key==='Enter')$('#lockPwd').focus()};
+  $('#lockPwd').onkeydown=function(e){if(e.key==='Enter')doLogin()};
+}
+
+function showRegisterForm(){
+  $('#lockTitle').textContent='📝 注册账号';
+  $('#lockSubtitle').textContent='创建账号，数据独立保存';
+  $('#lockError').textContent='';
+  $('#lockInput').style.display='block';
+  $('#lockInput').placeholder='用户名（4~20个字符）';
+  $('#lockInput').value='';
+  $('#lockPwd').style.display='block';
+  $('#lockPwd').placeholder='密码（至少4位）';
+  $('#lockPwd').value='';
+  $('#lockPwd').type='password';
+  $('#lockBtn').textContent='注 册';
+  $('#lockBtn').onclick=doRegister;
+  $('#lockSwitch').innerHTML='已有账号？<a href="#" onclick="showLoginForm();return false">立即登录</a>';
+  _mode='register';
+  $('#lockInput').focus();
+  $('#lockInput').onkeydown=function(e){if(e.key==='Enter')$('#lockPwd').focus()};
+  $('#lockPwd').onkeydown=function(e){if(e.key==='Enter')doRegister()};
+}
+
+async function doLogin(){
+  const u=$('#lockInput').value.trim(), p=$('#lockPwd').value;
+  if(!u||!p){$('#lockError').textContent='请填写用户名和密码';return}
+  $('#lockBtn').disabled=true;$('#lockBtn').textContent='登录中...';
+  const r=await loginUser(u,p);
+  if(r.ok){
+    setCurrentUser(r.user);
+    _userData=r.user;
     $('#lockModal').classList.remove('show');
     if(_lockResolve)_lockResolve();
+  } else {
+    $('#lockError').textContent=r.msg;
+    $('#lockBtn').disabled=false;$('#lockBtn').textContent='登 录';
   }
 }
 
+async function doRegister(){
+  const u=$('#lockInput').value.trim(), p=$('#lockPwd').value;
+  if(!u||u.length<4){$('#lockError').textContent='用户名至少4个字符';return}
+  if(!p||p.length<4){$('#lockError').textContent='密码至少4位';return}
+  $('#lockBtn').disabled=true;$('#lockBtn').textContent='注册中...';
+  const r=await registerUser(u,p);
+  if(r.ok){
+    setCurrentUser(r.user);
+    _userData=r.user;
+    $('#lockModal').classList.remove('show');
+    if(_lockResolve)_lockResolve();
+  } else {
+    $('#lockError').textContent=r.msg;
+    $('#lockBtn').disabled=false;$('#lockBtn').textContent='注 册';
+  }
+}
+
+
 // ===== 工具函数 =====
+let _mode='login';
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function toast(msg,color){
@@ -486,10 +566,13 @@ let loading=false;
 function showLoading(){loading=true;$('#loadingOverlay').classList.add('show')}
 function hideLoading(){loading=false;$('#loadingOverlay').classList.remove('show')}
 
+function getUserId(){const u=getCurrentUser();return u?u.id+'':null}
+
 async function loadTasks(dateStr){
   try {
     showLoading();
-    const res = await client.db.from('tasks').list().eq('task_date', dateStr);
+    const uid=getUserId();
+    const res = await client.db.from('tasks').list().eq('task_date', dateStr).eq('user_id', uid);
     if (res.success && Array.isArray(res.data)) {
       tasksCache = res.data.map(t => ({
         id: t.id,
@@ -522,6 +605,7 @@ function safeParseTags(v){
 
 async function saveTaskToCloud(task){
   try {
+    const uid=getUserId();
     const data = {
       task_date: task.task_date,
       name: task.name,
@@ -531,6 +615,7 @@ async function saveTaskToCloud(task){
       note: task.note || '',
       done: task.done ? 'true' : 'false',
       done_at: task.doneAt || '',
+      user_id: uid,
       ts: task.ts || new Date().toISOString()
     };
     if (task.id) {
@@ -547,7 +632,7 @@ async function saveTaskToCloud(task){
 
 async function deleteTaskFromCloud(id){
   try {
-    await client.db.from('tasks').delete().eq('id', id);
+    const uid=getUserId();await client.db.from('tasks').delete().eq('id', id).eq('user_id', uid);
   } catch(e) {
     console.error('删除失败:', e);
     throw e;
@@ -778,7 +863,7 @@ async function toggleDone(id){
   t.done=!t.done;
   t.doneAt=t.done?new Date().toISOString():null;
   try {
-    await client.db.from('tasks').update().set({done:t.done?'true':'false', done_at:t.doneAt||''}).eq('id',id);
+    await client.db.from('tasks').update().set({done:t.done?'true':'false', done_at:t.doneAt||''}).eq('id',id).eq('user_id', getUserId());
     renderTasks();
   } catch(e) {
     toast('☁️ 更新失败','#ef4444');
@@ -926,7 +1011,7 @@ async function collectRangeData(from,to){
   while(cur<=end){
     const s=fmtDate(cur);
     try {
-      const res=await client.db.from('tasks').list().eq('task_date',s);
+      const res=await client.db.from('tasks').list().eq('task_date',s).eq('user_id', getUserId());
       if(res.success&&Array.isArray(res.data)){
         res.data.forEach(t=>{
           seq++;
@@ -1002,10 +1087,33 @@ document.addEventListener('click',function(e){
   if(e.target.classList.contains('modal-overlay')){if(e.target.id!=='confirmModal')closeEditModal()}
 });
 
+// ===== 登出 =====
+function logout(){
+  if(!confirm('确定退出登录？'))return;
+  clearCurrentUser();
+  _userData=null;
+  $('#userNameDisplay').textContent='';
+  $('#logoutBtn').style.display='none';
+  showLoginForm();
+  $('#lockModal').classList.add('show');
+}
+
 // ===== 初始化 =====
 (async function init(){
-  // 先弹密码锁
-  await showLockScreen();
+  // 检查是否已登录
+  const savedUser=getCurrentUser();
+  if(savedUser){
+    _userData=savedUser;
+    $('#userNameDisplay').textContent='👤 '+savedUser.username;
+    $('#logoutBtn').style.display='inline-block';
+  } else {
+    // 先弹登录/注册
+    await showLockScreen();
+    if(_userData){
+      $('#userNameDisplay').textContent='👤 '+_userData.username;
+      $('#logoutBtn').style.display='inline-block';
+    }
+  }
   // 再加载数据
   const d=todayStr();dateIn.value=d;weekdayLabel.textContent=weekday(d);
   await renderAll();
