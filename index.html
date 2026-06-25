@@ -1169,12 +1169,72 @@ async function migrateOldData(){
   }
   // 迁移旧数据
   await migrateOldData();
+  // 逾期待办自动顺延（每天一次）
+  await rollOverdueTasks();
   // 未完成待办检查 — 发送系统通知
   checkTodoReminder();
-  // 再加载数据
+  // 加载数据
   const d=todayStr();dateIn.value=d;weekdayLabel.textContent=weekday(d);
   await renderAll();
 })();
+
+// ===== 逾期任务自动顺延到当天 =====
+// 逻辑：查看今天之前未完成的任务，若当天还没有同名任务，则自动复制到当天日期
+async function rollOverdueTasks(){
+  const uid=getUserId();
+  if(!uid) return;
+  const today=todayStr();
+  // 每日期检一次（避免重复扫描）
+  const key='auto_roll_date';
+  if(localStorage.getItem(key)===today) return;
+  try{
+    // 取今天之前的所有任务
+    const res=await client.db.from('tasks').list().lt('task_date', today);
+    if(!res.success||!res.data) return;
+    const overdue=res.data.filter(t=>{
+      if(t.task_date==='__auth__') return false;
+      if(t.done==='true') return false;
+      const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
+      return !tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__');
+    });
+    if(overdue.length===0){localStorage.setItem(key,today);return;}
+    // 取今天已有的任务（查重用）
+    const r2=await client.db.from('tasks').list().eq('task_date', today);
+    let todayNames=new Set();
+    if(r2.success&&r2.data){
+      r2.data.forEach(t=>{
+        const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
+        if(!tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__')){
+          todayNames.add(t.name);
+        }
+      });
+    }
+    let count=0;
+    for(const t of overdue){
+      if(todayNames.has(t.name)) continue; // 今天已有同名任务，跳过
+      todayNames.add(t.name); // 避免本次循环内重复
+      const ownerTag='__u:'+uid+'__';
+      const tags=[];try{tags.push(...JSON.parse(t.tags||'[]'));}catch(e){}
+      const saveTags=JSON.stringify(tags.filter(x=>!x.startsWith('__u:')).concat([ownerTag]));
+      await client.db.from('tasks').insert().values({
+        task_date: today,
+        name: t.name,
+        prio: t.prio||'p2',
+        due: t.due||'',
+        tags: saveTags,
+        note: t.note||'',
+        done: 'false',
+        done_at: '',
+        ts: new Date().toISOString()
+      });
+      count++;
+    }
+    localStorage.setItem(key,today);
+    if(count>0) toast('📋 自动顺延 '+count+' 项待办到今天','#667eea');
+  }catch(e){
+    console.warn('逾期顺延跳过:',e);
+  }
+}
 
 // ===== Android 通知提醒 =====
 function checkTodoReminder(){
