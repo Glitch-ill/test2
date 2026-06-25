@@ -68,15 +68,6 @@
   .btn-xs{padding:3px 8px;font-size:11px}
   .btn-ghost{background:transparent;border:none;color:#999;cursor:pointer;padding:2px 4px;font-size:14px}
   .btn-ghost:hover{color:#333}
-  /* PWA 安装条 */
-  .install-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:12px 20px;z-index:9999;box-shadow:0 -4px 16px rgba(0,0,0,.2);align-items:center;justify-content:space-between;gap:10px;animation:slideUp .3s ease}
-  .install-banner.show{display:flex}
-  .install-banner .text{font-size:14px;font-weight:500}
-  .install-banner .sub{font-size:12px;opacity:.8;margin-top:2px}
-  .install-banner .btn-install{background:white;color:#667eea;border:none;border-radius:20px;padding:8px 18px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
-  .install-banner .btn-install:active{transform:scale(.95)}
-  .install-banner .btn-close{background:transparent;border:none;color:rgba(255,255,255,.7);font-size:20px;cursor:pointer;flex-shrink:0;padding:0 4px}
-  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
   .main-grid{display:grid;grid-template-columns:1fr 360px;gap:16px}
   @media(max-width:860px){.main-grid{grid-template-columns:1fr}}
   .task-list{list-style:none}
@@ -151,7 +142,7 @@
   .spinner{width:36px;height:36px;border:3px solid #eef2ff;border-top:3px solid #667eea;border-radius:50%;animation:spin .6s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
 </style>
-<script src="/test2/lib/aipexbase.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/aipexbase-js/dist/aipexbase.umd.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -354,37 +345,23 @@
 <div class="modal-overlay" id="lockModal">
   <div class="modal-box" style="max-width:360px">
     <div style="text-align:center;margin-bottom:16px">
-      <div style="font-size:40px;margin-bottom:8px" id="lockIcon">🔐</div>
-      <h3 id="lockTitle" style="margin:0">登录</h3>
-      <p id="lockSubtitle" style="font-size:13px;color:#888;margin-top:4px">输入账号密码访问待办系统</p>
-    </div>
-    <div class="field">
-      <label>用户名</label>
-      <input type="text" id="lockInput" placeholder="用户名..." style="width:100%;padding:10px 12px;border:1px solid #d0d5dd;border-radius:8px;font-size:16px;outline:none;box-sizing:border-box">
+      <div style="font-size:40px;margin-bottom:8px">🔒</div>
+      <h3 id="lockTitle" style="margin:0">需要密码</h3>
+      <p id="lockMsg" style="font-size:13px;color:#888;margin-top:4px">请输入密码以访问待办系统</p>
     </div>
     <div class="field">
       <label>密码</label>
-      <input type="password" id="lockPwd" placeholder="密码..." style="width:100%;padding:10px 12px;border:1px solid #d0d5dd;border-radius:8px;font-size:16px;outline:none;box-sizing:border-box">
+      <input type="password" id="lockInput" placeholder="输入密码..." onkeydown="if(event.key==='Enter')lockSubmit()" style="width:100%;padding:10px 12px;border:1px solid #d0d5dd;border-radius:8px;font-size:16px;outline:none;box-sizing:border-box">
     </div>
-    <p id="lockError" style="color:#ef4444;font-size:13px;margin:-6px 0 10px;text-align:center">&nbsp;</p>
+    <p id="lockError" style="color:#ef4444;font-size:13px;display:none;margin:-6px 0 10px">❌ 密码错误</p>
     <div class="modal-btns">
-      <button class="btn btn-primary" id="lockBtn" style="width:100%;font-size:15px;padding:10px">登 录</button>
+      <button class="btn btn-primary" onclick="lockSubmit()" style="width:100%;font-size:15px;padding:10px">🔓 解锁</button>
     </div>
-    <p id="lockSwitch" style="font-size:13px;color:#888;text-align:center;margin-top:12px"></p>
+    <p id="lockHint" style="font-size:11px;color:#bbb;text-align:center;margin-top:10px">首次访问将设置密码</p>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
-
-<!-- PWA 安装横幅 -->
-<div class="install-banner" id="installBanner">
-  <div>
-    <div class="text">📋 安装「工作待办」</div>
-    <div class="sub">添加到桌面，像 App 一样使用</div>
-  </div>
-  <button class="btn-install" id="installBtn">安装</button>
-  <button class="btn-close" id="installClose">✕</button>
-</div>
 
 <script>
 // ===== 云数据库初始化 =====
@@ -409,130 +386,56 @@ function getTagLib(){
 }
 function saveTagLib(t){localStorage.setItem(LS_TAGS,JSON.stringify(t))}
 
-// ===== 用户账号系统 =====
-const USER_KEY = 'cloud_todo_user';
+// ===== 密码保护 =====
+// 密码存储在 localStorage 中（简单哈希，防君子不防小人）
+const PW_KEY='cloud_todo_pass';
 
-function getCurrentUser(){let r=localStorage.getItem(USER_KEY);if(r)try{return JSON.parse(r)}catch(e){}return null}
-function setCurrentUser(u){localStorage.setItem(USER_KEY,JSON.stringify(u))}
-function clearCurrentUser(){localStorage.removeItem(USER_KEY)}
-
-async function findAuthRecord(username){
-  const r=await client.db.from('tasks').list().eq('task_date','__auth__').eq('name',username);
-  if(r.success && r.data && r.data.length>0) return r.data[0];
-  return null;
-}
-
-async function registerUser(username, password){
-  const existing=await findAuthRecord(username);
-  if(existing) return {ok:false, msg:'用户名已被注册'}
-  const hash='u'+simpleHash(password);
-  const res=await client.db.from('tasks').insert().values({task_date:'__auth__', name:username, note:hash, done:'false', prio:'', due:'', tags:'[]', done_at:'', ts:new Date().toISOString()});
-  if(res.success){
-    return {ok:true, user:{id:res.data, username}}
-  }
-  return {ok:false, msg:'注册失败，请重试'}
-}
-
-async function loginUser(username, password){
-  const user=await findAuthRecord(username);
-  if(!user) return {ok:false, msg:'用户名或密码错误'}
-  const hash='u'+simpleHash(password);
-  if(user.note!==hash) return {ok:false, msg:'用户名或密码错误'}
-  return {ok:true, user:{id:user.id, username:user.name}}
-}
-
+function getStoredHash(){return localStorage.getItem(PW_KEY)}
+function setStoredHash(h){localStorage.setItem(PW_KEY,h)}
 function simpleHash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return 'h'+h}
 
 let _lockResolve=null;
-let _userData=null;
 
 function showLockScreen(){
   return new Promise((resolve)=>{
     _lockResolve=resolve;
     const overlay=$('#lockModal');
     overlay.classList.add('show');
-    // 默认显示登录
-    showLoginForm();
+    const title=$('#lockTitle'), msg=$('#lockMsg'), hint=$('#lockHint'), inp=$('#lockInput'), err=$('#lockError');
+    const stored=getStoredHash();
+    if(stored){
+      title.textContent='🔒 需要密码';
+      msg.textContent='请输入密码以访问待办系统';
+      hint.textContent='';
+    } else {
+      title.textContent='🔐 首次使用，请设置密码';
+      msg.textContent='设置一个密码，以后访问都需要输入它';
+      hint.textContent='请牢记密码，不可找回';
+    }
+    inp.value='';err.style.display='none';inp.focus();
   });
 }
 
-function showLoginForm(){
-  $('#lockTitle').textContent='🔐 登录';
-  $('#lockSubtitle').textContent='输入账号密码访问待办系统';
-  $('#lockError').textContent='';
-  $('#lockInput').style.display='block';
-  $('#lockInput').placeholder='用户名';
-  $('#lockInput').value='';
-  $('#lockPwd').style.display='block';
-  $('#lockPwd').placeholder='密码';
-  $('#lockPwd').value='';
-  $('#lockPwd').type='password';
-  $('#lockBtn').textContent='登 录';
-  $('#lockBtn').onclick=doLogin;
-  $('#lockSwitch').innerHTML='还没有账号？<a href="#" onclick="showRegisterForm();return false">立即注册</a>';
-  $('#lockInput').focus();
-  _mode='login';
-  // 回车键登录
-  $('#lockInput').onkeydown=function(e){if(e.key==='Enter')$('#lockPwd').focus()};
-  $('#lockPwd').onkeydown=function(e){if(e.key==='Enter')doLogin()};
-}
-
-function showRegisterForm(){
-  $('#lockTitle').textContent='📝 注册账号';
-  $('#lockSubtitle').textContent='创建账号，数据独立保存';
-  $('#lockError').textContent='';
-  $('#lockInput').style.display='block';
-  $('#lockInput').placeholder='用户名（4~20个字符）';
-  $('#lockInput').value='';
-  $('#lockPwd').style.display='block';
-  $('#lockPwd').placeholder='密码（至少4位）';
-  $('#lockPwd').value='';
-  $('#lockPwd').type='password';
-  $('#lockBtn').textContent='注 册';
-  $('#lockBtn').onclick=doRegister;
-  $('#lockSwitch').innerHTML='已有账号？<a href="#" onclick="showLoginForm();return false">立即登录</a>';
-  _mode='register';
-  $('#lockInput').focus();
-  $('#lockInput').onkeydown=function(e){if(e.key==='Enter')$('#lockPwd').focus()};
-  $('#lockPwd').onkeydown=function(e){if(e.key==='Enter')doRegister()};
-}
-
-async function doLogin(){
-  const u=$('#lockInput').value.trim(), p=$('#lockPwd').value;
-  if(!u||!p){$('#lockError').textContent='请填写用户名和密码';return}
-  $('#lockBtn').disabled=true;$('#lockBtn').textContent='登录中...';
-  const r=await loginUser(u,p);
-  if(r.ok){
-    setCurrentUser(r.user);
-    _userData=r.user;
+function lockSubmit(){
+  const inp=$('#lockInput'), err=$('#lockError');
+  const pwd=inp.value.trim();
+  if(!pwd){err.textContent='❌ 请输入密码';err.style.display='block';return}
+  const stored=getStoredHash();
+  if(stored){
+    if(simpleHash(pwd)===stored){
+      $('#lockModal').classList.remove('show');
+      if(_lockResolve)_lockResolve();
+    } else {
+      err.textContent='❌ 密码错误';err.style.display='block';inp.value='';
+    }
+  } else {
+    setStoredHash(simpleHash(pwd));
     $('#lockModal').classList.remove('show');
     if(_lockResolve)_lockResolve();
-  } else {
-    $('#lockError').textContent=r.msg;
-    $('#lockBtn').disabled=false;$('#lockBtn').textContent='登 录';
   }
 }
-
-async function doRegister(){
-  const u=$('#lockInput').value.trim(), p=$('#lockPwd').value;
-  if(!u||u.length<4){$('#lockError').textContent='用户名至少4个字符';return}
-  if(!p||p.length<4){$('#lockError').textContent='密码至少4位';return}
-  $('#lockBtn').disabled=true;$('#lockBtn').textContent='注册中...';
-  const r=await registerUser(u,p);
-  if(r.ok){
-    setCurrentUser(r.user);
-    _userData=r.user;
-    $('#lockModal').classList.remove('show');
-    if(_lockResolve)_lockResolve();
-  } else {
-    $('#lockError').textContent=r.msg;
-    $('#lockBtn').disabled=false;$('#lockBtn').textContent='注 册';
-  }
-}
-
 
 // ===== 工具函数 =====
-let _mode='login';
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function toast(msg,color){
@@ -564,21 +467,12 @@ let loading=false;
 function showLoading(){loading=true;$('#loadingOverlay').classList.add('show')}
 function hideLoading(){loading=false;$('#loadingOverlay').classList.remove('show')}
 
-function getUserId(){const u=getCurrentUser();return u?u.username:null}
-
 async function loadTasks(dateStr){
   try {
     showLoading();
-    const uid=getUserId();
     const res = await client.db.from('tasks').list().eq('task_date', dateStr);
     if (res.success && Array.isArray(res.data)) {
-      const uid=getUserId();
-      tasksCache = res.data.filter(t => {
-        if(!uid) return false;
-        const tags = t.tags ? JSON.parse(t.tags) : [];
-        // 没有 owner 标签的旧数据，或者 owner 标签匹配当前用户
-        return !tags.some(x=>x.startsWith('__u:')) || tags.includes('__u:'+uid+'__');
-      }).map(t => ({
+      tasksCache = res.data.map(t => ({
         id: t.id,
         name: t.name || '',
         prio: t.prio || 'p2',
@@ -609,16 +503,12 @@ function safeParseTags(v){
 
 async function saveTaskToCloud(task){
   try {
-    const uid=getUserId();
-    // tags 中混入 owner 标识
-    const ownerTag = '__u:'+uid+'__';
-    const saveTags = JSON.stringify((task.tags || []).filter(x=>!x.startsWith('__u:')).concat([ownerTag]));
     const data = {
       task_date: task.task_date,
       name: task.name,
       prio: task.prio,
       due: task.due || '',
-      tags: saveTags,
+      tags: JSON.stringify(task.tags || []),
       note: task.note || '',
       done: task.done ? 'true' : 'false',
       done_at: task.doneAt || '',
@@ -638,7 +528,7 @@ async function saveTaskToCloud(task){
 
 async function deleteTaskFromCloud(id){
   try {
-    const uid=getUserId();await client.db.from('tasks').delete().eq('id', id);
+    await client.db.from('tasks').delete().eq('id', id);
   } catch(e) {
     console.error('删除失败:', e);
     throw e;
@@ -1019,11 +909,7 @@ async function collectRangeData(from,to){
     try {
       const res=await client.db.from('tasks').list().eq('task_date',s);
       if(res.success&&Array.isArray(res.data)){
-        res.data.filter(t=>{
-          if(!uid)return false;
-          const tg=t.tags?JSON.parse(t.tags):[];
-          return !tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__');
-        }).forEach(t=>{
+        res.data.forEach(t=>{
           seq++;
           const tags=[];try{tags.push(...JSON.parse(t.tags||'[]'))}catch(e){}
           rows.push({
@@ -1060,7 +946,7 @@ async function exportExcel(mode){
 function loadSheetAndExport(aoa,filename){
   if(typeof XLSX!=='undefined'){doExport(aoa,filename);return}
   const s=document.createElement('script');
-  s.src='/test2/lib/xlsx.full.min.js';
+  s.src='https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
   s.onload=()=>doExport(aoa,filename);
   s.onerror=()=>{toast('加载导出库失败，改用 CSV','#f59e0b');exportCSV(aoa,filename)};
   document.head.appendChild(s);
@@ -1097,175 +983,17 @@ document.addEventListener('click',function(e){
   if(e.target.classList.contains('modal-overlay')){if(e.target.id!=='confirmModal')closeEditModal()}
 });
 
-// ===== 登出 =====
-function logout(){
-  if(!confirm('确定退出登录？'))return;
-  clearCurrentUser();
-  _userData=null;
-  $('#userNameDisplay').textContent='';
-  $('#logoutBtn').style.display='none';
-  showLoginForm();
-  $('#lockModal').classList.add('show');
-}
-
-// ===== 迁移旧数据（首次登录自动归并） =====
-async function migrateOldData(){
-  try {
-    const uid=getUserId();
-    if(!uid)return;
-    // 检查是否已迁移过（localStorage标记）
-    if(localStorage.getItem('migrated_user_'+uid)) return;
-    // 查找没有 owner 标签的旧数据
-    let needMigrate=[];
-    try {
-      const r=await client.db.from('tasks').list(); // removed'');
-      if(r.success&&r.data) needMigrate.push(...r.data);
-    } catch(e){}
-    try {
-      const r=await client.db.from('tasks').list(); // removednull);
-      if(r.success&&r.data) needMigrate.push(...r.data.filter(x=>!needMigrate.some(y=>y.id===x.id)));
-    } catch(e){}
-    if(needMigrate.length>0){
-      for(const t of needMigrate){
-        let tg=[];try{tg=JSON.parse(t.tags||'[]');}catch(e){}tg=tg.filter(x=>!x.startsWith('__u:'));tg.push('__u:'+uid+'__');await client.db.from('tasks').update().set({tags:JSON.stringify(tg)}).eq('id',t.id);
-      }
-      localStorage.setItem('migrated_user_'+uid, '1');
-      toast('已迁移 '+needMigrate.length+' 条旧数据 ✅');
-    } else {
-      localStorage.setItem('migrated_user_'+uid, '1');
-    }
-  } catch(e){
-    console.warn('旧数据迁移跳过:', e);
-  }
-}
-
 // ===== 初始化 =====
 (async function init(){
-  // 检查是否已登录
-  const savedUser=getCurrentUser();
-  if(savedUser){
-    _userData=savedUser;
-    $('#userNameDisplay').textContent='👤 '+savedUser.username;
-    $('#logoutBtn').style.display='inline-block';
-  } else {
-    // 先弹登录/注册
-    await showLockScreen();
-    if(_userData){
-      $('#userNameDisplay').textContent='👤 '+_userData.username;
-      $('#logoutBtn').style.display='inline-block';
-    }
-  }
-  // 迁移旧数据
-  await migrateOldData();
+  // 先弹密码锁
+  await showLockScreen();
   // 再加载数据
   const d=todayStr();dateIn.value=d;weekdayLabel.textContent=weekday(d);
   await renderAll();
 })();
 </script>
 <script>
-// ===== PWA 安装逻辑 =====
-let deferredPrompt = null;
-const installBanner = document.getElementById('installBanner');
-const installBtn = document.getElementById('installBtn');
-const installClose = document.getElementById('installClose');
-
-// 检测浏览器是否支持 PWA 安装弹窗
-function isChromePWA() {
-  return 'onbeforeinstallprompt' in window || 'BeforeInstallPromptEvent' in window;
-}
-
-// 监听浏览器安装事件（Chrome 专用）
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  showInstallBanner();
-});
-
-function showInstallBanner() {
-  if (window.matchMedia('(display-mode: standalone)').matches) return;
-  setTimeout(() => { installBanner.classList.add('show'); }, 2000);
-}
-
-// 安装按钮点击
-installBtn.addEventListener('click', async () => {
-  if (deferredPrompt) {
-    // Chrome: 弹出系统安装弹窗
-    deferredPrompt.prompt();
-    const result = await deferredPrompt.userChoice;
-    if (result.outcome === 'accepted') {
-      console.log('PWA: User installed');
-      installBanner.classList.remove('show');
-    }
-    deferredPrompt = null;
-  } else {
-    // 其他浏览器：弹出操作指引
-    showInstallGuide();
-  }
-});
-
-// 关闭横幅
-installClose.addEventListener('click', () => {
-  installBanner.classList.remove('show');
-});
-
-// 如果已经安装（独立模式），不显示横幅
-if (window.matchMedia('(display-mode: standalone)').matches) {
-  console.log('PWA: Running in standalone mode');
-} else if (!isChromePWA()) {
-  // 非 Chrome 浏览器（华为等），延迟显示
-  setTimeout(showInstallBanner, 2500);
-}
-
-// 安装指引弹窗
-function showInstallGuide() {
-  const isHuawei = navigator.userAgent.includes('Huawei') || navigator.userAgent.includes('HUAWEI');
-  const isAndroid = /Android/i.test(navigator.userAgent);
-  const isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
-  
-  let steps = '';
-  if (isHuawei) {
-    steps = `
-      <p style="margin-bottom:10px">📱 <b>华为浏览器添加到桌面：</b></p>
-      <p style="margin-bottom:6px">1. 点菜单（⋮）→ <b>「分享」</b></p>
-      <p style="margin-bottom:6px">2. 找到并点击 <b>「添加到桌面」</b></p>
-      <p style="color:#888;font-size:13px;margin-top:10px">⚠️ 华为浏览器添加到桌面后打开仍会显示地址栏。<br>建议用 <b>Chrome</b> 打开可安装为全屏 App。</p>
-    `;
-  } else if (isSafari) {
-    steps = `
-      <p style="margin-bottom:10px">🍎 <b>Safari 添加到主屏幕：</b></p>
-      <p style="margin-bottom:6px">1. 点底部 <b>「分享」</b> 按钮（📤）</p>
-      <p style="margin-bottom:6px">2. 下滑找到 <b>「添加到主屏幕」</b></p>
-      <p style="margin-bottom:6px">3. 点右上角 <b>「添加」</b></p>
-    `;
-  } else {
-    steps = `
-      <p style="margin-bottom:10px">📱 <b>添加到桌面：</b></p>
-      <p style="margin-bottom:6px">1. 点菜单（⋮）→ <b>「分享」</b></p>
-      <p style="margin-bottom:6px">2. 选择 <b>「添加到主屏幕」</b></p>
-      <p style="margin-bottom:6px">3. 点击 <b>「添加」</b></p>
-      <p style="color:#888;font-size:13px;margin-top:10px">💡 建议用 <b>Chrome</b> 打开可获得全屏 App 体验</p>
-    `;
-  }
-  
-  // 复用编辑弹窗样式做指引弹窗
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay show';
-  overlay.innerHTML = `
-    <div class="modal-box">
-      <h3>📲 安装到桌面</h3>
-      ${steps}
-      <div class="modal-btns" style="margin-top:16px">
-        <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">知道了</button>
-      </div>
-    </div>
-  `;
-  overlay.addEventListener('click', function(e) {
-    if (e.target === this) this.remove();
-  });
-  document.body.appendChild(overlay);
-}
-
-// 注册 Service Worker
+// 注册 Service Worker (PWA)
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('/test2/sw.js').then(r=>{
