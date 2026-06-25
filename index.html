@@ -68,15 +68,7 @@
   .btn-xs{padding:3px 8px;font-size:11px}
   .btn-ghost{background:transparent;border:none;color:#999;cursor:pointer;padding:2px 4px;font-size:14px}
   .btn-ghost:hover{color:#333}
-  /* PWA 安装条 */
-  .install-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:12px 20px;z-index:9999;box-shadow:0 -4px 16px rgba(0,0,0,.2);align-items:center;justify-content:space-between;gap:10px;animation:slideUp .3s ease}
-  .install-banner.show{display:flex}
-  .install-banner .text{font-size:14px;font-weight:500}
-  .install-banner .sub{font-size:12px;opacity:.8;margin-top:2px}
-  .install-banner .btn-install{background:white;color:#667eea;border:none;border-radius:20px;padding:8px 18px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
-  .install-banner .btn-install:active{transform:scale(.95)}
-  .install-banner .btn-close{background:transparent;border:none;color:rgba(255,255,255,.7);font-size:20px;cursor:pointer;flex-shrink:0;padding:0 4px}
-  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
   .main-grid{display:grid;grid-template-columns:1fr 360px;gap:16px}
   @media(max-width:860px){.main-grid{grid-template-columns:1fr}}
   .task-list{list-style:none}
@@ -382,15 +374,7 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- PWA 安装横幅 -->
-<div class="install-banner" id="installBanner">
-  <div>
-    <div class="text">📋 安装「工作待办」</div>
-    <div class="sub">添加到桌面，像 App 一样使用</div>
-  </div>
-  <button class="btn-install" id="installBtn">安装</button>
-  <button class="btn-close" id="installClose">✕</button>
-</div>
+
 
 <script>
 // ===== 云数据库初始化 =====
@@ -1167,120 +1151,6 @@ async function migrateOldData(){
   const d=todayStr();dateIn.value=d;weekdayLabel.textContent=weekday(d);
   await renderAll();
 })();
-</script>
-<script>
-// ===== PWA 安装逻辑 =====
-let deferredPrompt = null;
-const installBanner = document.getElementById('installBanner');
-const installBtn = document.getElementById('installBtn');
-const installClose = document.getElementById('installClose');
-
-// 检测浏览器是否支持 PWA 安装弹窗
-function isChromePWA() {
-  return 'onbeforeinstallprompt' in window || 'BeforeInstallPromptEvent' in window;
-}
-
-// 监听浏览器安装事件（Chrome 专用）
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  showInstallBanner();
-});
-
-function showInstallBanner() {
-  if (window.matchMedia('(display-mode: standalone)').matches) return;
-  setTimeout(() => { installBanner.classList.add('show'); }, 2000);
-}
-
-// 安装按钮点击
-installBtn.addEventListener('click', async () => {
-  if (deferredPrompt) {
-    // Chrome: 弹出系统安装弹窗
-    deferredPrompt.prompt();
-    const result = await deferredPrompt.userChoice;
-    if (result.outcome === 'accepted') {
-      console.log('PWA: User installed');
-      installBanner.classList.remove('show');
-    }
-    deferredPrompt = null;
-  } else {
-    // 其他浏览器：弹出操作指引
-    showInstallGuide();
-  }
-});
-
-// 关闭横幅
-installClose.addEventListener('click', () => {
-  installBanner.classList.remove('show');
-});
-
-// 如果已经安装（独立模式），不显示横幅
-if (window.matchMedia('(display-mode: standalone)').matches) {
-  console.log('PWA: Running in standalone mode');
-} else if (!isChromePWA()) {
-  // 非 Chrome 浏览器（华为等），延迟显示
-  setTimeout(showInstallBanner, 2500);
-}
-
-// 安装指引弹窗
-function showInstallGuide() {
-  const isHuawei = navigator.userAgent.includes('Huawei') || navigator.userAgent.includes('HUAWEI');
-  const isAndroid = /Android/i.test(navigator.userAgent);
-  const isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
-  
-  let steps = '';
-  if (isHuawei) {
-    steps = `
-      <p style="margin-bottom:10px">📱 <b>华为浏览器添加到桌面：</b></p>
-      <p style="margin-bottom:6px">1. 点菜单（⋮）→ <b>「分享」</b></p>
-      <p style="margin-bottom:6px">2. 找到并点击 <b>「添加到桌面」</b></p>
-      <p style="color:#888;font-size:13px;margin-top:10px">⚠️ 华为浏览器添加到桌面后打开仍会显示地址栏。<br>建议用 <b>Chrome</b> 打开可安装为全屏 App。</p>
-    `;
-  } else if (isSafari) {
-    steps = `
-      <p style="margin-bottom:10px">🍎 <b>Safari 添加到主屏幕：</b></p>
-      <p style="margin-bottom:6px">1. 点底部 <b>「分享」</b> 按钮（📤）</p>
-      <p style="margin-bottom:6px">2. 下滑找到 <b>「添加到主屏幕」</b></p>
-      <p style="margin-bottom:6px">3. 点右上角 <b>「添加」</b></p>
-    `;
-  } else {
-    steps = `
-      <p style="margin-bottom:10px">📱 <b>添加到桌面：</b></p>
-      <p style="margin-bottom:6px">1. 点菜单（⋮）→ <b>「分享」</b></p>
-      <p style="margin-bottom:6px">2. 选择 <b>「添加到主屏幕」</b></p>
-      <p style="margin-bottom:6px">3. 点击 <b>「添加」</b></p>
-      <p style="color:#888;font-size:13px;margin-top:10px">💡 建议用 <b>Chrome</b> 打开可获得全屏 App 体验</p>
-    `;
-  }
-  
-  // 复用编辑弹窗样式做指引弹窗
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay show';
-  overlay.innerHTML = `
-    <div class="modal-box">
-      <h3>📲 安装到桌面</h3>
-      ${steps}
-      <div class="modal-btns" style="margin-top:16px">
-        <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">知道了</button>
-      </div>
-    </div>
-  `;
-  overlay.addEventListener('click', function(e) {
-    if (e.target === this) this.remove();
-  });
-  document.body.appendChild(overlay);
-}
-
-// 注册 Service Worker
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/test2/sw.js').then(r=>{
-      console.log('PWA: SW registered', r.scope);
-    }).catch(e=>{
-      console.warn('PWA: SW registration failed', e);
-    });
-  });
-}
 </script>
 </body>
 </html>
