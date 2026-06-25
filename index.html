@@ -493,8 +493,8 @@ async function doLogin(){
   $('#lockBtn').disabled=true;$('#lockBtn').textContent='登录中...';
   const r=await loginUser(u,p);
   if(r.ok){
-    setCurrentUser(r.user);
-    _userData=r.user;
+    setCurrentUser(r.user);_userData=r.user;
+    updateUserUI();
     $('#lockModal').classList.remove('show');
     if(_lockResolve)_lockResolve();
   } else {
@@ -510,8 +510,8 @@ async function doRegister(){
   $('#lockBtn').disabled=true;$('#lockBtn').textContent='注册中...';
   const r=await registerUser(u,p);
   if(r.ok){
-    setCurrentUser(r.user);
-    _userData=r.user;
+    setCurrentUser(r.user);_userData=r.user;
+    updateUserUI();
     $('#lockModal').classList.remove('show');
     if(_lockResolve)_lockResolve();
   } else {
@@ -555,6 +555,18 @@ function showLoading(){loading=true;$('#loadingOverlay').classList.add('show')}
 function hideLoading(){loading=false;$('#loadingOverlay').classList.remove('show')}
 
 function getUserId(){const u=getCurrentUser();return u?u.username:null}
+
+// 统一刷新右上角用户区域
+function updateUserUI(){
+  const u=getCurrentUser();
+  if(u&&u.username){
+    $('#userNameDisplay').textContent='👤 '+u.username;
+    $('#logoutBtn').style.display='inline-block';
+  } else {
+    $('#userNameDisplay').textContent='';
+    $('#logoutBtn').style.display='none';
+  }
+}
 
 async function loadTasks(dateStr){
   try {
@@ -1139,15 +1151,11 @@ async function migrateOldData(){
   const savedUser=getCurrentUser();
   if(savedUser){
     _userData=savedUser;
-    $('#userNameDisplay').textContent='👤 '+savedUser.username;
-    $('#logoutBtn').style.display='inline-block';
+    updateUserUI();
   } else {
     // 先弹登录/注册
     await showLockScreen();
-    if(_userData){
-      $('#userNameDisplay').textContent='👤 '+_userData.username;
-      $('#logoutBtn').style.display='inline-block';
-    }
+    updateUserUI();
   }
   // 迁移旧数据
   await migrateOldData();
