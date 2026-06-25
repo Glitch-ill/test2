@@ -156,9 +156,15 @@
 <body>
 <div class="app">
 
-<div class="header">
-  <h1>📋 工作待办追踪系统</h1>
-  <p>数据存储在云端 · 手机电脑同步 · 优先级 · 标签 · 筛选 · 周/月导出</p>
+<div class="header" style="display:flex;align-items:flex-start;justify-content:space-between">
+  <div>
+    <h1>📋 工作待办追踪系统</h1>
+    <p>数据存储在云端 · 手机电脑同步 · 优先级 · 标签 · 筛选 · 周/月导出</p>
+  </div>
+  <div style="text-align:right;white-space:nowrap;flex-shrink:0">
+    <div id="userNameDisplay" style="font-size:13px;opacity:.9"></div>
+    <button id="logoutBtn" class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;display:none;margin-top:4px" onclick="logout()">退出登录</button>
+  </div>
 </div>
 
 <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
