@@ -496,6 +496,7 @@ async function doLogin(){
   if(r.ok){
     setCurrentUser(r.user);_userData=r.user;
     updateUserUI();
+    tasksCache=[];renderAll(); // 登出再登录后立即刷新数据
     $('#lockModal').classList.remove('show');
     if(_lockResolve)_lockResolve();
   } else {
@@ -513,6 +514,7 @@ async function doRegister(){
   if(r.ok){
     setCurrentUser(r.user);_userData=r.user;
     updateUserUI();
+    tasksCache=[];renderAll(); // 注册后立即刷新数据
     $('#lockModal').classList.remove('show');
     if(_lockResolve)_lockResolve();
   } else {
