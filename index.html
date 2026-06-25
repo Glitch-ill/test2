@@ -572,9 +572,15 @@ async function loadTasks(dateStr){
   try {
     showLoading();
     const uid=getUserId();
-    const res = await client.db.from('tasks').list().eq('task_date', dateStr).eq('user_id', uid);
+    const res = await client.db.from('tasks').list().eq('task_date', dateStr);
     if (res.success && Array.isArray(res.data)) {
-      tasksCache = res.data.map(t => ({
+      const uid=getUserId();
+      tasksCache = res.data.filter(t => {
+        if(!uid) return false;
+        const tags = t.tags ? JSON.parse(t.tags) : [];
+        // 没有 owner 标签的旧数据，或者 owner 标签匹配当前用户
+        return !tags.some(x=>x.startsWith('__u:')) || tags.includes('__u:'+uid+'__');
+      }).map(t => ({
         id: t.id,
         name: t.name || '',
         prio: t.prio || 'p2',
@@ -611,11 +617,16 @@ async function saveTaskToCloud(task){
       name: task.name,
       prio: task.prio,
       due: task.due || '',
-      tags: JSON.stringify(task.tags || []),
+      // tags 中混入 owner 标识
+      const uid=getUserId();
+      const ownerTag = '__u:'+uid+'__';
+      let saveTags = (task.tags || []).filter(x=>!x.startsWith('__u:'));
+      saveTags.push(ownerTag);
+      tags: JSON.stringify(saveTags),
       note: task.note || '',
       done: task.done ? 'true' : 'false',
       done_at: task.doneAt || '',
-      user_id: uid,
+      // user_id removed
       ts: task.ts || new Date().toISOString()
     };
     if (task.id) {
@@ -632,7 +643,7 @@ async function saveTaskToCloud(task){
 
 async function deleteTaskFromCloud(id){
   try {
-    const uid=getUserId();await client.db.from('tasks').delete().eq('id', id).eq('user_id', uid);
+    const uid=getUserId();await client.db.from('tasks').delete().eq('id', id);
   } catch(e) {
     console.error('删除失败:', e);
     throw e;
@@ -863,7 +874,7 @@ async function toggleDone(id){
   t.done=!t.done;
   t.doneAt=t.done?new Date().toISOString():null;
   try {
-    await client.db.from('tasks').update().set({done:t.done?'true':'false', done_at:t.doneAt||''}).eq('id',id).eq('user_id', getUserId());
+    await client.db.from('tasks').update().set({done:t.done?'true':'false', done_at:t.doneAt||''}).eq('id',id);
     renderTasks();
   } catch(e) {
     toast('☁️ 更新失败','#ef4444');
@@ -1011,9 +1022,13 @@ async function collectRangeData(from,to){
   while(cur<=end){
     const s=fmtDate(cur);
     try {
-      const res=await client.db.from('tasks').list().eq('task_date',s).eq('user_id', getUserId());
+      const res=await client.db.from('tasks').list().eq('task_date',s);
       if(res.success&&Array.isArray(res.data)){
-        res.data.forEach(t=>{
+        res.data.filter(t=>{
+          if(!uid)return false;
+          const tg=t.tags?JSON.parse(t.tags):[];
+          return !tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__');
+        }).forEach(t=>{
           seq++;
           const tags=[];try{tags.push(...JSON.parse(t.tags||'[]'))}catch(e){}
           rows.push({
@@ -1105,19 +1120,19 @@ async function migrateOldData(){
     if(!uid)return;
     // 检查是否已迁移过（localStorage标记）
     if(localStorage.getItem('migrated_user_'+uid)) return;
-    // 查询 user_id 为空或为空的旧数据
+    // 查找没有 owner 标签的旧数据
     let needMigrate=[];
     try {
-      const r=await client.db.from('tasks').list().eq('user_id','');
+      const r=await client.db.from('tasks').list(); // removed'');
       if(r.success&&r.data) needMigrate.push(...r.data);
     } catch(e){}
     try {
-      const r=await client.db.from('tasks').list().eq('user_id',null);
+      const r=await client.db.from('tasks').list(); // removednull);
       if(r.success&&r.data) needMigrate.push(...r.data.filter(x=>!needMigrate.some(y=>y.id===x.id)));
     } catch(e){}
     if(needMigrate.length>0){
       for(const t of needMigrate){
-        await client.db.from('tasks').update().set({user_id:uid}).eq('id',t.id);
+        let tg=[];try{tg=JSON.parse(t.tags||'[]');}catch(e){}tg=tg.filter(x=>!x.startsWith('__u:'));tg.push('__u:'+uid+'__');await client.db.from('tasks').update().set({tags:JSON.stringify(tg)}).eq('id',t.id);
       }
       localStorage.setItem('migrated_user_'+uid, '1');
       toast('已迁移 '+needMigrate.length+' 条旧数据 ✅');
