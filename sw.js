@@ -1,14 +1,13 @@
 // 工作待办追踪系统 - Service Worker (PWA)
 const CACHE_NAME = 'task-tracker-v3';
 const ASSETS = [
-  '/test2/',
-  '/test2/index.html',
   '/test2/manifest.json',
   '/test2/lib/aipexbase.umd.min.js',
   '/test2/lib/xlsx.full.min.js',
   '/test2/icons/icon-192.png',
   '/test2/icons/icon-512.png'
 ];
+// 注意：index.html 不预缓存，每次从网络获取以确保最新版本
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -34,19 +33,33 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  const isHTML = event.request.headers.get('Accept')?.includes('text/html') || 
+                 url.pathname.endsWith('.html') || url.pathname.endsWith('/');
+  
+  // HTML 页面永远走网络（不缓存），确保最新版本
+  if (isHTML) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => response)
+        .catch(() => caches.match(event.request).then(cached => {
+          if (cached) return cached;
+          return new Response(
+            '<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>离线</title><style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f0f2f5;color:#333;text-align:center;padding:20px}div{max-width:400px}h1{font-size:24px;margin-bottom:8px}p{color:#666;line-height:1.6}</style></head><body><div><h1>📋 暂无网络</h1><p>当前处于离线状态，请在联网后刷新页面继续使用。</p></div></body></html>',
+            { headers: { 'Content-Type': 'text/html;charset=utf-8' } }
+          );
+        }))
+    );
+    return;
+  }
+  
+  // 非 HTML（JS、CSS、图片等）走缓存优先
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        const clone = response.clone();
+    caches.match(event.request)
+      .then(cached => cached || fetch(event.request).then(res => {
+        const clone = res.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        return response;
-      })
-      .catch(() => caches.match(event.request).then(cached => {
-        if (cached) return cached;
-        return new Response(
-          '<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>离线</title><style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f0f2f5;color:#333;text-align:center;padding:20px}div{max-width:400px}h1{font-size:24px;margin-bottom:8px}p{color:#666;line-height:1.6}</style></head><body><div><h1>📋 暂无网络</h1><p>当前处于离线状态，请在联网后刷新页面继续使用。</p></div></body></html>',
-          { headers: { 'Content-Type': 'text/html;charset=utf-8' } }
-        );
+        return res;
       }))
   );
 });

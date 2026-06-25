@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="工作待办">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <title>工作待办追踪系统</title>
@@ -1271,6 +1274,21 @@ function checkTodoReminder(){
       console.warn('提醒检查失败:', e);
     }
   }, 3000);
+}
+
+// ===== Service Worker（仅用于离线缓存库文件 & 自动更新） =====
+if('serviceWorker' in navigator){
+  // 先杀死旧的 Service Worker（强制清缓存）
+  navigator.serviceWorker.getRegistration().then(reg=>{
+    if(reg) reg.unregister();
+    // 清掉所有旧缓存
+    caches.keys().then(keys => Promise.all(keys.map(k=>caches.delete(k))));
+  }).finally(()=>{
+    // 重新注册新 SW
+    navigator.serviceWorker.register('/test2/sw.js').catch(e=>{
+      console.warn('SW registration skipped:', e);
+    });
+  });
 }
 </script>
 </body>
