@@ -1151,10 +1151,49 @@ async function migrateOldData(){
   }
   // 迁移旧数据
   await migrateOldData();
+  // 未完成待办检查 — 发送系统通知
+  checkTodoReminder();
   // 再加载数据
   const d=todayStr();dateIn.value=d;weekdayLabel.textContent=weekday(d);
   await renderAll();
 })();
+
+// ===== Android 通知提醒 =====
+function checkTodoReminder(){
+  const uid=getUserId();
+  if(!uid) return;
+  if(typeof AndroidNotifier === 'undefined') return;
+  setTimeout(async()=>{
+    try{
+      const ts=todayStr();
+      const res = await client.db.from('tasks').list().lte('task_date', ts);
+      if(!res.success||!res.data) return;
+      const undone=res.data.filter(t=>{
+        if(t.task_date==='__auth__') return false;
+        if(t.done==='true') return false;
+        const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
+        return !tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__');
+      });
+      if(undone.length===0) return;
+      const todayItems=[],pastItems=[];
+      const ts2=todayStr();
+      undone.forEach(t=>{ if(t.task_date===ts2) todayItems.push(t); else pastItems.push(t); });
+      let title='待办提醒';
+      let body='';
+      if(undone.length===1){
+        body='还有 1 件未完成：'+undone[0].name;
+      } else {
+        const parts=[];
+        if(todayItems.length>0) parts.push('今天 '+todayItems.length+' 件');
+        if(pastItems.length>0) parts.push('逾期 '+pastItems.length+' 件');
+        body='共 '+undone.length+' 件未完成（'+parts.join('，')+'）';
+      }
+      AndroidNotifier.showReminder(title, body);
+    } catch(e){
+      console.warn('提醒检查失败:', e);
+    }
+  }, 3000);
+}
 </script>
 </body>
 </html>
