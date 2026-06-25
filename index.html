@@ -1098,6 +1098,37 @@ function logout(){
   $('#lockModal').classList.add('show');
 }
 
+// ===== 迁移旧数据（首次登录自动归并） =====
+async function migrateOldData(){
+  try {
+    const uid=getUserId();
+    if(!uid)return;
+    // 检查是否已迁移过（localStorage标记）
+    if(localStorage.getItem('migrated_user_'+uid)) return;
+    // 查询 user_id 为空或为空的旧数据
+    let needMigrate=[];
+    try {
+      const r=await client.db.from('tasks').list().eq('user_id','');
+      if(r.success&&r.data) needMigrate.push(...r.data);
+    } catch(e){}
+    try {
+      const r=await client.db.from('tasks').list().eq('user_id',null);
+      if(r.success&&r.data) needMigrate.push(...r.data.filter(x=>!needMigrate.some(y=>y.id===x.id)));
+    } catch(e){}
+    if(needMigrate.length>0){
+      for(const t of needMigrate){
+        await client.db.from('tasks').update().set({user_id:uid}).eq('id',t.id);
+      }
+      localStorage.setItem('migrated_user_'+uid, '1');
+      toast('已迁移 '+needMigrate.length+' 条旧数据 ✅');
+    } else {
+      localStorage.setItem('migrated_user_'+uid, '1');
+    }
+  } catch(e){
+    console.warn('旧数据迁移跳过:', e);
+  }
+}
+
 // ===== 初始化 =====
 (async function init(){
   // 检查是否已登录
@@ -1114,6 +1145,8 @@ function logout(){
       $('#logoutBtn').style.display='inline-block';
     }
   }
+  // 迁移旧数据
+  await migrateOldData();
   // 再加载数据
   const d=todayStr();dateIn.value=d;weekdayLabel.textContent=weekday(d);
   await renderAll();
