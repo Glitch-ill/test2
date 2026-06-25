@@ -1100,29 +1100,33 @@ function logout(){
 
 // ===== 迁移旧数据（首次登录自动归并） =====
 async function migrateOldData(){
+  // ⚠️ 仅迁移无归属的旧数据（没有 __u: 标签的任务）
+  // 已有 owner 的任务不可重复迁移
   try {
     const uid=getUserId();
     if(!uid)return;
-    // 检查是否已迁移过（localStorage标记）
-    if(localStorage.getItem('migrated_user_'+uid)) return;
-    // 查找没有 owner 标签的旧数据
-    let needMigrate=[];
+    const key='migrated_old_global_v1';
+    if(localStorage.getItem(key)) return;
+    let allTasks=[];
     try {
-      const r=await client.db.from('tasks').list(); // removed'');
-      if(r.success&&r.data) needMigrate.push(...r.data);
+      const r=await client.db.from('tasks').list();
+      if(r.success&&r.data) allTasks.push(...r.data);
     } catch(e){}
-    try {
-      const r=await client.db.from('tasks').list(); // removednull);
-      if(r.success&&r.data) needMigrate.push(...r.data.filter(x=>!needMigrate.some(y=>y.id===x.id)));
-    } catch(e){}
-    if(needMigrate.length>0){
-      for(const t of needMigrate){
-        let tg=[];try{tg=JSON.parse(t.tags||'[]');}catch(e){}tg=tg.filter(x=>!x.startsWith('__u:'));tg.push('__u:'+uid+'__');await client.db.from('tasks').update().set({tags:JSON.stringify(tg)}).eq('id',t.id);
+    // 过滤出真正无归属的任务（没有任何 __u: 标签）
+    const unowned=allTasks.filter(t=>{
+      const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
+      return !tg.some(x=>x.startsWith('__u:'));
+    }).filter(t=>t.task_date!=='__auth__'); // 排除认证记录
+    if(unowned.length>0){
+      for(const t of unowned){
+        let tg=[];try{tg=JSON.parse(t.tags||'[]');}catch(e){}
+        tg.push('__u:'+uid+'__');
+        await client.db.from('tasks').update().set({tags:JSON.stringify(tg)}).eq('id',t.id);
       }
-      localStorage.setItem('migrated_user_'+uid, '1');
-      toast('已迁移 '+needMigrate.length+' 条旧数据 ✅');
+      localStorage.setItem(key, '1');
+      toast('已归并 '+unowned.length+' 条旧数据 ✅');
     } else {
-      localStorage.setItem('migrated_user_'+uid, '1');
+      localStorage.setItem(key, '1');
     }
   } catch(e){
     console.warn('旧数据迁移跳过:', e);
