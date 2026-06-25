@@ -1018,29 +1018,41 @@ const installBanner = document.getElementById('installBanner');
 const installBtn = document.getElementById('installBtn');
 const installClose = document.getElementById('installClose');
 
-// 监听浏览器安装事件
+// 检测浏览器是否支持 PWA 安装弹窗
+function isChromePWA() {
+  return 'onbeforeinstallprompt' in window || 'BeforeInstallPromptEvent' in window;
+}
+
+// 监听浏览器安装事件（Chrome 专用）
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  // 延迟显示（等页面加载完，且不在独立模式）
-  if (!window.matchMedia('(display-mode: standalone)').matches) {
-    setTimeout(() => { installBanner.classList.add('show'); }, 2000);
-  }
+  showInstallBanner();
 });
+
+function showInstallBanner() {
+  if (window.matchMedia('(display-mode: standalone)').matches) return;
+  setTimeout(() => { installBanner.classList.add('show'); }, 2000);
+}
 
 // 安装按钮点击
 installBtn.addEventListener('click', async () => {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const result = await deferredPrompt.userChoice;
-  if (result.outcome === 'accepted') {
-    console.log('PWA: User installed');
-    installBanner.classList.remove('show');
+  if (deferredPrompt) {
+    // Chrome: 弹出系统安装弹窗
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
+    if (result.outcome === 'accepted') {
+      console.log('PWA: User installed');
+      installBanner.classList.remove('show');
+    }
+    deferredPrompt = null;
+  } else {
+    // 其他浏览器：弹出操作指引
+    showInstallGuide();
   }
-  deferredPrompt = null;
 });
 
-// 关闭横幅（7天内不再显示）
+// 关闭横幅
 installClose.addEventListener('click', () => {
   installBanner.classList.remove('show');
 });
@@ -1048,6 +1060,58 @@ installClose.addEventListener('click', () => {
 // 如果已经安装（独立模式），不显示横幅
 if (window.matchMedia('(display-mode: standalone)').matches) {
   console.log('PWA: Running in standalone mode');
+} else if (!isChromePWA()) {
+  // 非 Chrome 浏览器（华为等），延迟显示
+  setTimeout(showInstallBanner, 2500);
+}
+
+// 安装指引弹窗
+function showInstallGuide() {
+  const isHuawei = navigator.userAgent.includes('Huawei') || navigator.userAgent.includes('HUAWEI');
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome/i.test(navigator.userAgent);
+  
+  let steps = '';
+  if (isHuawei) {
+    steps = `
+      <p style="margin-bottom:10px">📱 <b>华为浏览器添加到桌面：</b></p>
+      <p style="margin-bottom:6px">1. 点菜单（⋮）→ <b>「分享」</b></p>
+      <p style="margin-bottom:6px">2. 找到并点击 <b>「添加到桌面」</b></p>
+      <p style="color:#888;font-size:13px;margin-top:10px">⚠️ 华为浏览器添加到桌面后打开仍会显示地址栏。<br>建议用 <b>Chrome</b> 打开可安装为全屏 App。</p>
+    `;
+  } else if (isSafari) {
+    steps = `
+      <p style="margin-bottom:10px">🍎 <b>Safari 添加到主屏幕：</b></p>
+      <p style="margin-bottom:6px">1. 点底部 <b>「分享」</b> 按钮（📤）</p>
+      <p style="margin-bottom:6px">2. 下滑找到 <b>「添加到主屏幕」</b></p>
+      <p style="margin-bottom:6px">3. 点右上角 <b>「添加」</b></p>
+    `;
+  } else {
+    steps = `
+      <p style="margin-bottom:10px">📱 <b>添加到桌面：</b></p>
+      <p style="margin-bottom:6px">1. 点菜单（⋮）→ <b>「分享」</b></p>
+      <p style="margin-bottom:6px">2. 选择 <b>「添加到主屏幕」</b></p>
+      <p style="margin-bottom:6px">3. 点击 <b>「添加」</b></p>
+      <p style="color:#888;font-size:13px;margin-top:10px">💡 建议用 <b>Chrome</b> 打开可获得全屏 App 体验</p>
+    `;
+  }
+  
+  // 复用编辑弹窗样式做指引弹窗
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay show';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <h3>📲 安装到桌面</h3>
+      ${steps}
+      <div class="modal-btns" style="margin-top:16px">
+        <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">知道了</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', function(e) {
+    if (e.target === this) this.remove();
+  });
+  document.body.appendChild(overlay);
 }
 
 // 注册 Service Worker
