@@ -160,6 +160,7 @@ h1{font-size:28px;font-weight:700;text-align:center;margin-bottom:6px}
     <button class="tab active" onclick="showVersion('a',this)">A · 极简卡片流</button>
     <button class="tab" onclick="showVersion('b',this)">B · 侧边栏布局</button>
     <button class="tab" onclick="showVersion('c',this)">C · 日历集成</button>
+    <button class="tab" onclick="showVersion('d',this)">D · 黑白日历🔥</button>
   </div>
 
   <!-- ====== VERSION A ====== -->
@@ -426,6 +427,91 @@ h1{font-size:28px;font-weight:700;text-align:center;margin-bottom:6px}
     </div>
   </div>
 
+  <!-- ====== VERSION D: B+C Fusion ====== -->
+  <div class="mockup" id="mockup-d">
+    <div class="phone-frame v-d">
+      <div class="notch"><div class="notch-cut"></div><span class="time">00:38</span></div>
+      <div class="content">
+        <div class="status-bar" style="margin-bottom:8px">
+          <div class="user"><div class="avatar">王</div><span style="font-size:12px">wangyy</span><button class="logout">退出</button></div>
+          <div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;color:#86868b">🔄 已同步</span></div>
+        </div>
+
+        <div class="side-header" style="margin-bottom:10px">
+          <h2>📅 6月26日 周四</h2>
+          <div class="badge-icon">📊 5 项</div>
+        </div>
+
+        <div class="filter-pills">
+          <div class="pill active">全部</div>
+          <div class="pill">待完成</div>
+          <div class="pill">逾期</div>
+          <div class="pill" style="border:1px solid #ef4444;color:#ef4444">🔴</div>
+        </div>
+
+        <div class="week-grid">
+          <div class="cell"><div class="dow">一</div><div class="num">22</div></div>
+          <div class="cell"><div class="dow">二</div><div class="num">23</div></div>
+          <div class="cell"><div class="dow">三</div><div class="num">24</div></div>
+          <div class="cell"><div class="dow">四</div><div class="num">25</div></div>
+          <div class="cell"><div class="dow">五</div><div class="num today">26</div></div>
+          <div class="cell"><div class="dow">六</div><div class="num">27</div></div>
+          <div class="cell"><div class="dow">日</div><div class="num">28</div></div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:11px;font-weight:600;color:#86868b;letter-spacing:.3px">待完成 · 4 项</span>
+          <span style="font-size:11px;color:#ef4444">🔴 1 逾期</span>
+        </div>
+
+        <div class="task-item" style="background:#fef2f2;border-radius:10px;padding:10px;border-bottom:none;margin-bottom:6px">
+          <div class="prio-bar high" style="height:42px"></div>
+          <div class="cb"></div>
+          <div class="info">
+            <div class="name" style="font-size:13px;font-weight:500">共享系统出库📦 <span style="font-size:10px;color:#ef4444;font-weight:600">逾期1天</span></div>
+            <div class="meta" style="font-size:11px;color:#86868b;margin-top:2px">🏷️ 重要 · 截止 6/25 18:00</div>
+          </div>
+        </div>
+
+        <div class="task-item">
+          <div class="prio-bar high" style="height:42px"></div>
+          <div class="cb"></div>
+          <div class="info">
+            <div class="name" style="font-size:13px;font-weight:500">代码 Review - 权限模块</div>
+            <div class="meta" style="font-size:11px;color:#86868b;margin-top:2px">🔴 高 · 🏷️ 开发 · 截止 23:59</div>
+          </div>
+        </div>
+
+        <div class="task-item">
+          <div class="prio-bar medium" style="height:42px"></div>
+          <div class="cb"></div>
+          <div class="info">
+            <div class="name" style="font-size:13px;font-weight:500">编写日报</div>
+            <div class="meta" style="font-size:11px;color:#86868b;margin-top:2px">🟡 中 · 🏷️ 报告</div>
+          </div>
+        </div>
+
+        <div class="task-item">
+          <div class="prio-bar low" style="height:42px"></div>
+          <div class="cb done">✓</div>
+          <div class="info">
+            <div class="name done" style="font-size:13px">整理周报素材</div>
+            <div class="meta" style="font-size:11px;color:#86868b;margin-top:2px">⚪ 低 · ✅ 已完成 · 19:34</div>
+          </div>
+        </div>
+
+        <div class="bottom-stats">
+          <div class="stat">📊 <strong>80%</strong> 完成率</div>
+          <div class="stat">✅ <strong class="num green">1</strong> 已完成</div>
+          <div class="stat">⏳ <strong>3</strong> 待完成</div>
+          <div class="stat">🔴 <strong class="num red">1</strong> 逾期</div>
+        </div>
+
+        <button class="fab">➕ 新建任务</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Feature comparison -->
   <div class="comparison">
     <h3>📊 三版对比</h3>
@@ -477,6 +563,17 @@ h1{font-size:28px;font-weight:700;text-align:center;margin-bottom:6px}
         <li>底部统计条：完成率 / 已完成 / 待完成 / 逾期</li>
         <li>顶行快速输入 + ⋯ 展开更多选项</li>
         <li>适合：按日历规划日程的用户</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>⭐ D · 黑白极简·全览日历 <span style="font-size:11px;color:#ef4444;font-weight:400">NEW</span></h4>
+      <ul>
+        <li>B 的黑白极简视觉 + C 的周历日历网格</li>
+        <li>左侧优先级色条 + 逾期红色背景卡片</li>
+        <li>周历日期 + 分组统计一览无余</li>
+        <li>底部统计条 + FAB 新建按钮</li>
+        <li>信息密度最高，既看日历又看明细</li>
+        <li>适合：想要日程总览+任务明细的用户</li>
       </ul>
     </div>
   </div>
