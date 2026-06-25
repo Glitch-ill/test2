@@ -166,6 +166,7 @@
   <input type="date" id="curDate">
   <span style="font-size:12px;color:#999" id="weekdayLabel"></span>
   <span style="font-size:12px;color:#10b981;margin-left:auto" id="cloudStatus">☁️ 云端同步</span>
+  <button class="btn btn-outline btn-xs" onclick="manualRefresh()" title="手动刷新数据" style="margin-left:8px">🔄</button>
 </div>
 
 <div class="main-grid">
@@ -645,6 +646,13 @@ async function deleteTaskFromCloud(id){
     console.error('删除失败:', e);
     throw e;
   }
+}
+
+// ===== 手动刷新 =====
+function manualRefresh(){
+  toast('🔄 正在刷新...','#667eea');
+  const d=dateIn.value;
+  renderAll();
 }
 
 // ===== DOM refs =====
