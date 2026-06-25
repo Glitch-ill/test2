@@ -416,14 +416,17 @@ function getCurrentUser(){let r=localStorage.getItem(USER_KEY);if(r)try{return J
 function setCurrentUser(u){localStorage.setItem(USER_KEY,JSON.stringify(u))}
 function clearCurrentUser(){localStorage.removeItem(USER_KEY)}
 
+async function findAuthRecord(username){
+  const r=await client.db.from('tasks').list().eq('task_date','__auth__').eq('name',username);
+  if(r.success && r.data && r.data.length>0) return r.data[0];
+  return null;
+}
+
 async function registerUser(username, password){
-  // 检查用户名是否已存在
-  const existing = await client.db.from('users').list().eq('username', username);
-  if(existing.success && existing.data && existing.data.length > 0){
-    return {ok:false, msg:'用户名已被注册'}
-  }
-  const hash = simpleHash(password);
-  const res = await client.db.from('users').insert().values({username, password: hash, created_at: new Date().toISOString()});
+  const existing=await findAuthRecord(username);
+  if(existing) return {ok:false, msg:'用户名已被注册'}
+  const hash='u'+simpleHash(password);
+  const res=await client.db.from('tasks').insert().values({task_date:'__auth__', name:username, note:hash, done:'false', prio:'', due:'', tags:'[]', done_at:'', ts:new Date().toISOString()});
   if(res.success){
     return {ok:true, user:{id:res.data, username}}
   }
@@ -431,16 +434,11 @@ async function registerUser(username, password){
 }
 
 async function loginUser(username, password){
-  const res = await client.db.from('users').list().eq('username', username);
-  if(!res.success || !res.data || res.data.length === 0){
-    return {ok:false, msg:'用户名或密码错误'}
-  }
-  const user = res.data[0];
-  const hash = simpleHash(password);
-  if(user.password !== hash){
-    return {ok:false, msg:'用户名或密码错误'}
-  }
-  return {ok:true, user:{id:user.id, username:user.username}}
+  const user=await findAuthRecord(username);
+  if(!user) return {ok:false, msg:'用户名或密码错误'}
+  const hash='u'+simpleHash(password);
+  if(user.note!==hash) return {ok:false, msg:'用户名或密码错误'}
+  return {ok:true, user:{id:user.id, username:user.name}}
 }
 
 function simpleHash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return 'h'+h}
@@ -566,7 +564,7 @@ let loading=false;
 function showLoading(){loading=true;$('#loadingOverlay').classList.add('show')}
 function hideLoading(){loading=false;$('#loadingOverlay').classList.remove('show')}
 
-function getUserId(){const u=getCurrentUser();return u?u.id+'':null}
+function getUserId(){const u=getCurrentUser();return u?u.username:null}
 
 async function loadTasks(dateStr){
   try {
@@ -612,21 +610,18 @@ function safeParseTags(v){
 async function saveTaskToCloud(task){
   try {
     const uid=getUserId();
+    // tags 中混入 owner 标识
+    const ownerTag = '__u:'+uid+'__';
+    const saveTags = JSON.stringify((task.tags || []).filter(x=>!x.startsWith('__u:')).concat([ownerTag]));
     const data = {
       task_date: task.task_date,
       name: task.name,
       prio: task.prio,
       due: task.due || '',
-      // tags 中混入 owner 标识
-      const uid=getUserId();
-      const ownerTag = '__u:'+uid+'__';
-      let saveTags = (task.tags || []).filter(x=>!x.startsWith('__u:'));
-      saveTags.push(ownerTag);
-      tags: JSON.stringify(saveTags),
+      tags: saveTags,
       note: task.note || '',
       done: task.done ? 'true' : 'false',
       done_at: task.doneAt || '',
-      // user_id removed
       ts: task.ts || new Date().toISOString()
     };
     if (task.id) {
