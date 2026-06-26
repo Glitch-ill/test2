@@ -554,7 +554,12 @@ async function getLib(){
     return cloud;
   }
   let r=localStorage.getItem(LS_LIB);
-  if(r)try{_cachedLib=JSON.parse(r);return _cachedLib}catch(e){}
+  if(r){
+    try{_cachedLib=JSON.parse(r);}catch(e){_cachedLib=r.split(',')}
+    // 本地有旧数据但云端没有 → 推上云
+    if(_cachedLib.length>0) await cloudSaveLib(_cachedLib);
+    return _cachedLib;
+  }
   _cachedLib = [...DEFAULT_LIB];
   return _cachedLib;
 }
@@ -573,7 +578,12 @@ async function getTagLib(){
     return cloud;
   }
   let r=localStorage.getItem(LS_TAGS);
-  if(r)try{_cachedTags=JSON.parse(r);return _cachedTags}catch(e){}
+  if(r){
+    try{_cachedTags=JSON.parse(r);}catch(e){_cachedTags=r.split(',')}
+    // 本地有旧数据但云端没有 → 推上云
+    if(_cachedTags.length>0) await cloudSaveTagLib(_cachedTags);
+    return _cachedTags;
+  }
   _cachedTags = [...DEFAULT_TAGS];
   return _cachedTags;
 }
