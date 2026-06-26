@@ -4,14 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#667eea">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="工作待办">
+
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+
 <title>工作待办追踪系统</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
@@ -1278,8 +1275,6 @@ async function migrateOldData(){
   await migrateOldData();
   // 逾期待办自动顺延（每天一次）
   await rollOverdueTasks();
-  // 未完成待办检查 — 发送系统通知
-  checkTodoReminder();
   // 加载数据
   const d=todayStr();dateIn.value=d;weekdayLabel.textContent=weekday(d);
   await renderAll();
@@ -1343,57 +1338,7 @@ async function rollOverdueTasks(){
   }
 }
 
-// ===== Android 通知提醒 =====
-function checkTodoReminder(){
-  const uid=getUserId();
-  if(!uid) return;
-  if(typeof AndroidNotifier === 'undefined') return;
-  setTimeout(async()=>{
-    try{
-      const ts=todayStr();
-      const res = await client.db.from('tasks').list().lte('task_date', ts);
-      if(!res.success||!res.data) return;
-      const undone=res.data.filter(t=>{
-        if(t.task_date==='__auth__') return false;
-        if(t.done==='true') return false;
-        const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
-        return !tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__');
-      });
-      if(undone.length===0) return;
-      const todayItems=[],pastItems=[];
-      const ts2=todayStr();
-      undone.forEach(t=>{ if(t.task_date===ts2) todayItems.push(t); else pastItems.push(t); });
-      let title='待办提醒';
-      let body='';
-      if(undone.length===1){
-        body='还有 1 件未完成：'+undone[0].name;
-      } else {
-        const parts=[];
-        if(todayItems.length>0) parts.push('今天 '+todayItems.length+' 件');
-        if(pastItems.length>0) parts.push('逾期 '+pastItems.length+' 件');
-        body='共 '+undone.length+' 件未完成（'+parts.join('，')+'）';
-      }
-      AndroidNotifier.showReminder(title, body);
-    } catch(e){
-      console.warn('提醒检查失败:', e);
-    }
-  }, 3000);
-}
 
-// ===== Service Worker（仅用于离线缓存库文件 & 自动更新） =====
-if('serviceWorker' in navigator){
-  // 先杀死旧的 Service Worker（强制清缓存）
-  navigator.serviceWorker.getRegistration().then(reg=>{
-    if(reg) reg.unregister();
-    // 清掉所有旧缓存
-    caches.keys().then(keys => Promise.all(keys.map(k=>caches.delete(k))));
-  }).finally(()=>{
-    // 重新注册新 SW
-    navigator.serviceWorker.register('/test2/sw.js').catch(e=>{
-      console.warn('SW registration skipped:', e);
-    });
-  });
-}
 </script>
 </body>
 </html>
