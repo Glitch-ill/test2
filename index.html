@@ -2,283 +2,378 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#667eea">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-
 <title>工作待办追踪系统</title>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#f0f2f5;color:#333;padding:24px}
-  .app{max-width:1200px;margin:0 auto}
-  .header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:16px;padding:24px 32px;color:white;margin-bottom:20px;box-shadow:0 8px 24px rgba(102,126,234,.25)}
-  .header h1{font-size:22px;font-weight:700}
-  .header p{opacity:.8;margin-top:4px;font-size:13px}
-  .card{background:white;border-radius:12px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
-  .card-title{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-  .badge{background:#667eea;color:white;border-radius:20px;padding:0 10px;font-size:11px;line-height:20px;white-space:nowrap}
-  .badge.green{background:#10b981}
-  .badge.orange{background:#f59e0b}
-  .badge.red{background:#ef4444}
-  .date-bar{display:flex;align-items:center;gap:10px;background:white;border-radius:12px;padding:14px 20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);flex-wrap:wrap}
-  .date-bar label{font-weight:600;font-size:13px;white-space:nowrap}
-  .date-bar input[type=date]{border:1px solid #d0d5dd;border-radius:8px;padding:7px 12px;font-size:13px;outline:none}
-  .date-bar input[type=date]:focus{border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,.15)}
-  .filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #eee}
-  .filter-bar select,.filter-bar input[type=date]{border:1px solid #d0d5dd;border-radius:6px;padding:6px 10px;font-size:13px;outline:none;background:#fafafa}
-  .filter-bar select:focus,.filter-bar input:focus{border-color:#667eea;background:white}
-  .filter-bar .label{font-size:12px;color:#888;margin-right:2px}
-  .add-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end}
-  .add-row .field{display:flex;flex-direction:column;gap:3px}
-  .add-row .field label{font-size:11px;font-weight:600;color:#666}
-  .add-row .field input,.add-row .field select{padding:7px 10px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;outline:none;background:#fafafa;min-width:0}
-  .add-row .field input:focus,.add-row .field select:focus{border-color:#667eea;background:white}
-  .add-row .field select{min-width:100px}
-  .add-row .field input[type=datetime-local]{min-width:170px}
-  .tag-select-wrap{position:relative;min-width:160px}
-  .tag-select-trigger{display:flex;flex-wrap:wrap;gap:4px;padding:5px 8px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;cursor:pointer;background:#fafafa;min-height:32px;align-items:center}
-  .tag-select-trigger:focus,.tag-select-trigger.open{border-color:#667eea;background:white}
-  .tag-select-trigger .placeholder{color:#bbb;font-size:13px}
-  .tag-chip{display:inline-flex;align-items:center;gap:3px;background:#eef2ff;color:#667eea;border-radius:4px;padding:1px 7px;font-size:11px;line-height:20px}
-  .tag-chip .remove{cursor:pointer;font-weight:700;font-size:13px;line-height:1;margin-left:2px;color:#999}
-  .tag-chip .remove:hover{color:#ef4444}
-  .tag-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid #d0d5dd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:100;max-height:200px;overflow-y:auto;padding:6px 0}
-  .tag-dropdown.show{display:block}
-  .tag-dropdown .opt{padding:7px 14px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px}
-  .tag-dropdown .opt:hover{background:#f5f5ff}
-  .tag-dropdown .opt input[type=checkbox]{accent-color:#667eea;width:15px;height:15px}
-  .tag-dropdown .opt .label{flex:1}
-  .tag-dropdown .custom-add{display:flex;padding:7px 14px;gap:6px;border-top:1px solid #eee}
-  .tag-dropdown .custom-add input{flex:1;border:1px solid #d0d5dd;border-radius:6px;padding:5px 8px;font-size:12px;outline:none;min-width:0}
-  .tag-dropdown .custom-add input:focus{border-color:#667eea}
-  .btn{border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;line-height:1.4}
-  .btn:active{transform:scale(.97)}
-  .btn-primary{background:#667eea;color:white}
-  .btn-primary:hover{background:#5a6fd6}
-  .btn-success{background:#10b981;color:white}
-  .btn-success:hover{background:#059669}
-  .btn-danger{background:#ef4444;color:white}
-  .btn-danger:hover{background:#dc2626}
-  .btn-outline{background:transparent;border:1px solid #d0d5dd;color:#666}
-  .btn-outline:hover{background:#f5f5f5}
-  .btn-sm{padding:6px 14px;font-size:12px}
-  .btn-xs{padding:3px 8px;font-size:11px}
-  .btn-ghost{background:transparent;border:none;color:#999;cursor:pointer;padding:2px 4px;font-size:14px}
-  .btn-ghost:hover{color:#333}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#f5f5f7;color:#1d1d1f;min-height:100vh}
+.app{max-width:1100px;margin:0 auto;padding:24px 20px}
 
-  .main-grid{display:grid;grid-template-columns:1fr 360px;gap:16px}
-  @media(max-width:860px){.main-grid{grid-template-columns:1fr}}
-  .task-list{list-style:none}
-  .task-item{display:flex;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f0f0f0;gap:10px}
-  .task-item:last-child{border-bottom:none}
-  .task-item .check-col{flex-shrink:0;padding-top:2px}
-  .task-item .check-col input[type=checkbox]{width:17px;height:17px;cursor:pointer;accent-color:#10b981}
-  .task-item .body-col{flex:1;min-width:0}
-  .task-item .body-col .name{font-size:14px;font-weight:500;word-break:break-word}
-  .task-item .body-col .name.done{text-decoration:line-through;color:#aaa}
-  .task-item .body-col .meta{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:5px;font-size:12px;color:#888}
-  .task-item .body-col .meta .tag{background:#eef2ff;color:#667eea;border-radius:4px;padding:1px 7px;font-size:11px;display:inline-block}
-  .task-item .body-col .meta .overdue{color:#ef4444;font-weight:600}
-  .task-item .actions-col{flex-shrink:0;display:flex;gap:4px;align-items:center}
-  .empty-tip{text-align:center;color:#aaa;padding:30px 0;font-size:14px}
-  .prio-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;flex-shrink:0}
-  .prio-dot.p1{background:#ef4444}
-  .prio-dot.p2{background:#f59e0b}
-  .prio-dot.p3{background:#9ca3af}
-  .stats{display:flex;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;font-size:13px;color:#666;flex-wrap:wrap}
-  .stats span strong{color:#333}
-  .summary-list{list-style:none}
-  .summary-item{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0f0f0;font-size:13px;gap:6px}
-  .summary-item:last-child{border-bottom:none}
-  .summary-item .name{flex:1;display:flex;align-items:center;gap:4px}
-  .summary-item .num{font-weight:600}
-  .summary-item .num.green{color:#10b981}
-  .summary-item .num.orange{color:#f59e0b}
-  .export-section{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
-  .export-section .info{font-size:13px;color:#666}
-  .export-section .info strong{color:#333}
-  .export-btns{display:flex;gap:8px;flex-wrap:wrap}
-  .toast{position:fixed;bottom:24px;right:24px;background:#333;color:white;padding:12px 22px;border-radius:10px;font-size:14px;opacity:0;transform:translateY(16px);transition:all .3s;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:999}
-  .toast.show{opacity:1;transform:translateY(0)}
-  .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:1000;justify-content:center;align-items:center;padding:20px}
-  .modal-overlay.show{display:flex}
-  .modal-box{background:white;border-radius:16px;padding:24px;width:100%;max-width:440px;box-shadow:0 8px 32px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
-  .modal-box h3{font-size:17px;font-weight:700;margin-bottom:16px}
-  .modal-box .field{margin-bottom:14px}
-  .modal-box .field label{display:block;font-size:12px;font-weight:600;color:#666;margin-bottom:4px}
-  .modal-box .field input,.modal-box .field select{width:100%;padding:10px 12px;border:1px solid #d0d5dd;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box}
-  .modal-box .field input:focus,.modal-box .field select:focus{border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,.15)}
-  .modal-box .modal-btns{display:flex;gap:10px;margin-top:4px;justify-content:flex-end}
-  .edit-tags-wrap{position:relative}
-  .edit-tags-trigger{display:flex;flex-wrap:wrap;gap:4px;padding:8px 10px;border:1px solid #d0d5dd;border-radius:8px;font-size:14px;cursor:pointer;background:#fafafa;min-height:38px;align-items:center}
-  .edit-tags-trigger:focus,.edit-tags-trigger.open{border-color:#667eea;background:white}
-  .edit-tags-trigger .placeholder{color:#bbb}
-  .edit-tag-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid #d0d5dd;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:101;max-height:200px;overflow-y:auto;padding:6px 0}
-  .edit-tag-dropdown.show{display:block}
-  .edit-tag-dropdown .opt{padding:7px 14px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px}
-  .edit-tag-dropdown .opt:hover{background:#f5f5ff}
-  .edit-tag-dropdown .opt input[type=checkbox]{accent-color:#667eea;width:15px;height:15px}
-  .edit-tag-dropdown .opt .label{flex:1}
-  .edit-tag-dropdown .custom-add{display:flex;padding:7px 14px;gap:6px;border-top:1px solid #eee}
-  .edit-tag-dropdown .custom-add input{flex:1;border:1px solid #d0d5dd;border-radius:6px;padding:5px 8px;font-size:12px;outline:none;min-width:0}
-  .edit-tag-dropdown .custom-add input:focus{border-color:#667eea}
-  .lib-manager .tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #eee}
-  .lib-manager .tabs .tab{padding:8px 16px;cursor:pointer;font-size:14px;font-weight:600;color:#888;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
-  .lib-manager .tabs .tab.active{color:#667eea;border-bottom-color:#667eea}
-  .lib-manager .tab-panel{display:none}
-  .lib-manager .tab-panel.show{display:block}
-  .lib-manager .panel-header{display:flex;gap:8px;margin-bottom:12px}
-  .lib-manager .panel-header input{flex:1;padding:8px 10px;border:1px solid #d0d5dd;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box}
-  .lib-manager .panel-header input:focus{border-color:#667eea}
-  .lib-manager .lib-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;gap:8px}
-  .lib-manager .lib-item:last-child{border-bottom:none}
-  .lib-manager .lib-item .name{flex:1;font-size:14px}
-  .lib-manager .lib-item .actns{display:flex;gap:4px}
-  .lib-manager .lib-list{max-height:300px;overflow-y:auto}
-  .loading-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.7);z-index:999;justify-content:center;align-items:center}
-  .loading-overlay.show{display:flex}
-  .spinner{width:36px;height:36px;border:3px solid #eef2ff;border-top:3px solid #667eea;border-radius:50%;animation:spin .6s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
+/* ===== 头部 ===== */
+.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.header h1{font-size:22px;font-weight:700;color:#1d1d1f;letter-spacing:-.3px}
+.header .sub{font-size:13px;color:#86868b;margin-top:2px}
+.header .user-area{text-align:right;white-space:nowrap;flex-shrink:0;font-size:13px}
+.header .user-area .name{font-weight:500}
+.header .user-area .logout-btn{font-size:12px;color:#86868b;cursor:pointer;padding:3px 10px;border-radius:6px;background:#f0f0f0;border:none;margin-top:3px}
+.header .user-area .logout-btn:hover{background:#e0e0e0}
+
+/* ===== 日期栏 + 云状态 ===== */
+.top-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.top-bar .date-group{display:flex;align-items:center;gap:6px;background:white;border-radius:10px;padding:8px 14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.top-bar .date-group label{font-size:13px;font-weight:600}
+.top-bar .date-group input[type=date]{border:none;font-size:13px;outline:none;color:#1d1d1f}
+.top-bar .weekday{font-size:12px;color:#86868b}
+.top-bar .cloud-status{font-size:12px;color:#86868b;margin-left:auto;display:flex;align-items:center;gap:4px}
+.top-bar .cloud-status .dot{width:5px;height:5px;border-radius:50%;background:#86868b}
+.top-bar .cloud-status.synced .dot{background:#34c759}
+.top-bar .refresh-btn{background:white;border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center}
+
+/* ===== 主网格 ===== */
+.main-grid{display:grid;grid-template-columns:1fr 340px;gap:16px}
+@media(max-width:860px){.main-grid{grid-template-columns:1fr}}
+
+/* ===== 卡片 ===== */
+.card{background:white;border-radius:14px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:16px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #f0f0f0}
+.card-header .title{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+.card-header .badge{background:#f0f0f0;border-radius:20px;padding:0 10px;font-size:11px;line-height:20px;white-space:nowrap;color:#666;font-weight:500}
+.card-header .badge.red{color:#ef4444;background:#fef2f2}
+.card-header .badge.green{color:#34c759;background:#e8f8ed}
+.card-section{margin-bottom:16px}
+.card-section:last-child{margin-bottom:0}
+
+/* ===== 筛选药丸 ===== */
+.filter-pills{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;flex-wrap:wrap}
+.filter-pills .pill{flex-shrink:0;padding:5px 12px;border-radius:100px;font-size:12px;font-weight:500;cursor:pointer;background:#f5f5f7;color:#666;border:1px solid transparent;transition:all .15s}
+.filter-pills .pill:hover{background:#e8e8ed}
+.filter-pills .pill.active{background:#1d1d1f;color:white;border-color:#1d1d1f}
+.filter-pills .pill.tag-active{background:#f0f0f0;color:#1d1d1f}
+.filter-pills .sort-select{flex-shrink:0;padding:5px 10px;border:1px solid #e8e8e8;border-radius:100px;font-size:12px;outline:none;background:#f5f5f7;color:#666;margin-left:auto}
+
+/* ===== 添加待办区域 ===== */
+.add-section{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end}
+.add-section .field{display:flex;flex-direction:column;gap:3px}
+.add-section .field label{font-size:11px;font-weight:600;color:#86868b}
+.add-section .field input,.add-section .field select{padding:7px 10px;border:1px solid #e8e8e8;border-radius:8px;font-size:13px;outline:none;background:#fafafa;min-width:0}
+.add-section .field input:focus,.add-section .field select:focus{border-color:#1d1d1f;background:white}
+.add-section .field select{min-width:90px}
+.add-section .field input[type=datetime-local]{min-width:165px}
+.add-section .field input[type=text]{min-width:200px}
+.add-btns{display:flex;gap:6px;align-items:flex-end}
+.add-btns .btn-main{background:#1d1d1f;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.add-btns .btn-main:hover{background:#333}
+.add-btns .btn-main:active{transform:scale(.97)}
+.add-btns .btn-second{background:transparent;border:1px solid #e0e0e0;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;color:#666}
+.add-btns .btn-second:hover{background:#f5f5f5}
+
+/* ===== 标签选择器 ===== */
+.tag-select-wrap{position:relative;min-width:160px}
+.tag-select-trigger{display:flex;flex-wrap:wrap;gap:3px;padding:6px 10px;border:1px solid #e8e8e8;border-radius:8px;font-size:13px;cursor:pointer;background:#fafafa;min-height:33px;align-items:center}
+.tag-select-trigger:focus,.tag-select-trigger.open{border-color:#1d1d1f;background:white}
+.tag-select-trigger .placeholder{color:#bbb;font-size:13px}
+.tag-chip{display:inline-flex;align-items:center;gap:3px;background:#f0f0f0;color:#555;border-radius:4px;padding:1px 7px;font-size:11px;line-height:20px}
+.tag-chip .remove{cursor:pointer;font-weight:700;font-size:13px;line-height:1;margin-left:2px;color:#999}
+.tag-chip .remove:hover{color:#ef4444}
+.tag-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid #e0e0e0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:100;max-height:200px;overflow-y:auto;padding:6px 0}
+.tag-dropdown.show{display:block}
+.tag-dropdown .opt{padding:7px 14px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px}
+.tag-dropdown .opt:hover{background:#f5f5f5}
+.tag-dropdown .opt input[type=checkbox]{accent-color:#1d1d1f;width:15px;height:15px}
+.tag-dropdown .opt .label{flex:1}
+.tag-dropdown .custom-add{display:flex;padding:7px 14px;gap:6px;border-top:1px solid #eee}
+.tag-dropdown .custom-add input{flex:1;border:1px solid #e0e0e0;border-radius:6px;padding:5px 8px;font-size:12px;outline:none;min-width:0}
+.tag-dropdown .custom-add input:focus{border-color:#1d1d1f}
+.tag-dropdown .custom-add button{background:#1d1d1f;color:white;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer}
+
+/* ===== 任务列表 ===== */
+.task-list{list-style:none}
+.task-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.task-item:last-child{border-bottom:none}
+.task-item .prio-bar{width:3px;flex-shrink:0;border-radius:2px;height:38px;margin-top:2px}
+.task-item .prio-bar.p1{background:#ef4444}
+.task-item .prio-bar.p2{background:#f59e0b}
+.task-item .prio-bar.p3{background:#d0d5dd}
+.task-item .check-col{flex-shrink:0;padding-top:3px}
+.task-item .check-col .cb{width:18px;height:18px;border-radius:50%;border:2px solid #d0d5dd;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;color:white}
+.task-item .check-col .cb.done{border-color:#34c759;background:#34c759}
+.task-item .body-col{flex:1;min-width:0}
+.task-item .body-col .name{font-size:14px;font-weight:500;word-break:break-word}
+.task-item .body-col .name.done{text-decoration:line-through;color:#aaa}
+.task-item .body-col .meta{font-size:12px;color:#86868b;margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 8px}
+.task-item .body-col .meta .tag{background:#f0f0f0;border-radius:4px;padding:1px 7px;font-size:11px;display:inline-block}
+.task-item .body-col .meta .overdue{color:#ef4444;font-weight:600}
+.task-item .actions-col{flex-shrink:0;display:flex;gap:4px;align-items:center}
+.task-item .actions-col .btn-icon{background:transparent;border:none;color:#999;cursor:pointer;padding:2px 4px;font-size:14px;border-radius:4px}
+.task-item .actions-col .btn-icon:hover{color:#333;background:#f5f5f5}
+.empty-tip{text-align:center;color:#aaa;padding:28px 0;font-size:14px}
+.filtered-count{font-size:12px;color:#999;margin-left:auto}
+
+/* ===== 统计条 ===== */
+.stats{display:flex;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;font-size:13px;color:#86868b;flex-wrap:wrap}
+.stats span strong{color:#1d1d1f;font-weight:600}
+.stats span .num.red{color:#ef4444}
+
+/* ===== 完成明细（右侧栏） ===== */
+.summary-list{list-style:none}
+.summary-item{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px;gap:6px}
+.summary-item:last-child{border-bottom:none}
+.summary-item .name{flex:1;display:flex;align-items:center;gap:4px;font-weight:500}
+.summary-item .count{font-size:12px;color:#86868b}
+.summary-item .count .done{color:#34c759;font-weight:600}
+.summary-item .count .pending{color:#f59e0b;font-weight:600}
+.summary-item .pct{font-size:11px;color:#999;min-width:30px;text-align:right}
+.tag-dist{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.tag-dist .tag-chip{background:#f5f5f7;border-radius:6px;padding:2px 10px;font-size:12px;color:#666}
+.tag-dist .tag-chip .num{color:#1d1d1f;font-weight:600}
+
+/* ===== 导出区域 ===== */
+.export-section{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.export-section .info{font-size:13px;color:#86868b}
+.export-section .info strong{color:#1d1d1f}
+.export-btns{display:flex;gap:8px;flex-wrap:wrap}
+.export-btns .btn{background:#f5f5f7;border:1px solid #e0e0e0;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;color:#1d1d1f}
+.export-btns .btn:hover{background:#e8e8ed}
+.export-btns .btn:active{transform:scale(.97)}
+.export-btns .btn.primary{background:#1d1d1f;color:white;border-color:#1d1d1f}
+.export-btns .btn.primary:hover{background:#333}
+.export-btns .btn.danger{color:#ef4444}
+
+/* ===== Toast ===== */
+.toast{position:fixed;bottom:24px;right:24px;color:white;padding:12px 22px;border-radius:10px;font-size:14px;opacity:0;transform:translateY(16px);transition:all .3s;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:999}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ===== 弹窗 ===== */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:1000;justify-content:center;align-items:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal-box{background:white;border-radius:16px;padding:24px;width:100%;max-width:440px;box-shadow:0 8px 32px rgba(0,0,0,.15);max-height:90vh;overflow-y:auto}
+.modal-box h3{font-size:17px;font-weight:600;margin-bottom:16px}
+.modal-box .field{margin-bottom:14px}
+.modal-box .field label{display:block;font-size:12px;font-weight:600;color:#86868b;margin-bottom:4px}
+.modal-box .field input,.modal-box .field select{width:100%;padding:10px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box}
+.modal-box .field input:focus,.modal-box .field select:focus{border-color:#1d1d1f;box-shadow:0 0 0 3px rgba(0,0,0,.08)}
+.modal-btns{display:flex;gap:10px;margin-top:4px;justify-content:flex-end}
+.modal-btns .btn{background:#f5f5f7;border:1px solid #e0e0e0;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;color:#1d1d1f}
+.modal-btns .btn:hover{background:#e8e8ed}
+.modal-btns .btn.primary{background:#1d1d1f;color:white;border-color:#1d1d1f}
+.modal-btns .btn.primary:hover{background:#333}
+.modal-btns .btn.danger{color:#ef4444}
+
+/* 编辑标签选择 */
+.edit-tags-wrap{position:relative}
+.edit-tags-trigger{display:flex;flex-wrap:wrap;gap:4px;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;cursor:pointer;background:#fafafa;min-height:38px;align-items:center}
+.edit-tags-trigger:focus,.edit-tags-trigger.open{border-color:#1d1d1f;background:white}
+.edit-tags-trigger .placeholder{color:#bbb}
+.edit-tag-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid #e0e0e0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:101;max-height:200px;overflow-y:auto;padding:6px 0}
+.edit-tag-dropdown.show{display:block}
+.edit-tag-dropdown .opt{padding:7px 14px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px}
+.edit-tag-dropdown .opt:hover{background:#f5f5f5}
+.edit-tag-dropdown .opt input[type=checkbox]{accent-color:#1d1d1f;width:15px;height:15px}
+.edit-tag-dropdown .opt .label{flex:1}
+.edit-tag-dropdown .custom-add{display:flex;padding:7px 14px;gap:6px;border-top:1px solid #eee}
+.edit-tag-dropdown .custom-add input{flex:1;border:1px solid #e0e0e0;border-radius:6px;padding:5px 8px;font-size:12px;outline:none;min-width:0}
+.edit-tag-dropdown .custom-add input:focus{border-color:#1d1d1f}
+.edit-tag-dropdown .custom-add button{background:#1d1d1f;color:white;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer}
+
+/* ===== 选项库管理 ===== */
+.lib-manager .tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #eee}
+.lib-manager .tabs .tab{padding:8px 16px;cursor:pointer;font-size:14px;font-weight:600;color:#888;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.lib-manager .tabs .tab.active{color:#1d1d1f;border-bottom-color:#1d1d1f}
+.lib-manager .tab-panel{display:none}
+.lib-manager .tab-panel.show{display:block}
+.lib-manager .panel-header{display:flex;gap:8px;margin-bottom:12px}
+.lib-manager .panel-header input{flex:1;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box}
+.lib-manager .panel-header input:focus{border-color:#1d1d1f}
+.lib-manager .panel-header button{background:#1d1d1f;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer}
+.lib-manager .lib-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;gap:8px}
+.lib-manager .lib-item:last-child{border-bottom:none}
+.lib-manager .lib-item .name{flex:1;font-size:14px}
+.lib-manager .lib-item .actns{display:flex;gap:4px}
+.lib-manager .lib-item .actns button{background:transparent;border:1px solid #e0e0e0;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer}
+.lib-manager .lib-item .actns button:hover{background:#f5f5f5}
+.lib-manager .lib-list{max-height:300px;overflow-y:auto}
+
+/* ===== Loading ===== */
+.loading-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.7);z-index:999;justify-content:center;align-items:center}
+.loading-overlay.show{display:flex}
+.spinner{width:32px;height:32px;border:3px solid #eee;border-top:3px solid #1d1d1f;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== 锁屏弹窗 ===== */
+.lock-box{text-align:center}
+.lock-box .icon{font-size:40px;margin-bottom:8px}
+.lock-box h3{margin:0;font-weight:600}
+.lock-box .sub{font-size:13px;color:#86868b;margin-top:4px}
+.lock-box .lock-error{color:#ef4444;font-size:13px;margin:-6px 0 10px;text-align:center;min-height:20px}
+.lock-box .lock-btn{background:#1d1d1f;color:white;border:none;border-radius:8px;width:100%;font-size:15px;padding:10px;cursor:pointer}
+.lock-box .lock-btn:hover{background:#333}
+.lock-box .lock-btn:disabled{opacity:.6}
+.lock-box .lock-switch{font-size:13px;color:#86868b;text-align:center;margin-top:12px}
 </style>
 <script src="/test2/lib/aipexbase.umd.min.js"></script>
 </head>
 <body>
+
 <div class="app">
 
-<div class="header" style="display:flex;align-items:flex-start;justify-content:space-between">
+<!-- ===== 头部 ===== -->
+<div class="header">
   <div>
-    <h1>📋 工作待办追踪系统</h1>
-    <p>数据存储在云端 · 手机电脑同步 · 优先级 · 标签 · 筛选 · 周/月导出</p>
+    <h1>📋 待办</h1>
+    <div class="sub">云端同步 · 手机电脑互通</div>
   </div>
-  <div style="text-align:right;white-space:nowrap;flex-shrink:0">
-    <div id="userNameDisplay" style="font-size:13px;opacity:.9"></div>
-    <button id="logoutBtn" class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;display:none;margin-top:4px" onclick="logout()">退出登录</button>
+  <div class="user-area">
+    <div class="name" id="userNameDisplay"></div>
+    <button class="logout-btn" id="logoutBtn" onclick="logout()" style="display:none">退出登录</button>
   </div>
+</div>
+
+<!-- ===== 日期栏 ===== -->
+<div class="top-bar">
+  <div class="date-group">
+    <label>📅</label>
+    <input type="date" id="curDate">
+    <span class="weekday" id="weekdayLabel"></span>
+  </div>
+  <div id="cloudStatus" class="cloud-status"><span class="dot"></span> 已同步</div>
+  <button class="refresh-btn" onclick="manualRefresh()">🔄</button>
 </div>
 
 <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
 
-<div class="date-bar">
-  <label>📅 日期</label>
-  <input type="date" id="curDate">
-  <span style="font-size:12px;color:#999" id="weekdayLabel"></span>
-  <span style="font-size:12px;color:#10b981;margin-left:auto" id="cloudStatus">☁️ 云端同步</span>
-  <button class="btn btn-outline btn-xs" onclick="manualRefresh()" title="手动刷新数据" style="margin-left:8px">🔄</button>
-</div>
-
+<!-- ===== 主网格 ===== -->
 <div class="main-grid">
-<div class="card">
-  <div class="card-title">
-    📌 待办事项 <span class="badge" id="totalBadge">0 项</span>
-  </div>
-  <div class="filter-bar">
-    <span class="label">🔍 筛选</span>
-    <select id="filterStatus"><option value="all">全部状态</option><option value="pending">待完成</option><option value="done">已完成</option></select>
-    <select id="filterPriority"><option value="all">全部优先级</option><option value="p1">🔴 高</option><option value="p2">🟡 中</option><option value="p3">⚪ 低</option></select>
-    <select id="filterTag"><option value="all">全部标签</option></select>
-    <input type="date" id="filterDueFrom" title="截止开始">
-    <span style="color:#999;font-size:12px">~</span>
-    <input type="date" id="filterDueTo" title="截止结束">
-    <button class="btn btn-outline btn-xs" onclick="clearFilters()">清除</button>
-  </div>
-  <div class="add-row">
-    <div class="field" style="flex:1;min-width:160px">
-      <label>待办名称</label>
-      <div class="tag-select-wrap" id="taskNameWrap">
-        <div class="tag-select-trigger" id="taskNameTrigger" tabindex="0" onclick="toggleTaskNameDropdown()">
-          <span id="taskNameDisplay" style="color:#bbb;font-size:13px">点击选择或输入新名称</span>
-        </div>
-        <div class="tag-dropdown" id="taskNameDropdown">
-          <div id="taskNameOptList"></div>
-          <div class="custom-add">
-            <input type="text" id="taskNameCustomInput" placeholder="输入新名称..." onkeydown="if(event.key==='Enter'){addCustomTaskName();event.preventDefault()}">
-            <button class="btn btn-primary btn-xs" onclick="addCustomTaskName()">+ 新建</button>
+
+<!-- ===== 左侧：待办列表 ===== -->
+<div>
+  <div class="card">
+    <div class="card-header">
+      <div class="title">📌 待办 <span class="badge" id="totalBadge">0 项</span></div>
+    </div>
+
+    <!-- 隐藏的筛选控件（JS 引用用） -->
+    <select id="filterStatus" style="display:none"><option value="all">全部</option><option value="pending">待完成</option><option value="done">已完成</option></select>
+    <select id="filterPriority" style="display:none"><option value="all">全部</option></select>
+    <select id="filterTag" style="display:none"><option value="all">全部标签</option></select>
+    <input type="date" id="filterDueFrom" style="display:none">
+    <input type="date" id="filterDueTo" style="display:none">
+
+    <!-- 筛选药丸 -->
+    <div class="filter-pills">
+      <span class="pill active" data-filter="all" onclick="setFilter('all',this)">全部</span>
+      <span class="pill" data-filter="pending" onclick="setFilter('pending',this)">待完成</span>
+      <span class="pill" data-filter="done" onclick="setFilter('done',this)">已完成</span>
+      <span class="pill" data-filter="overdue" onclick="setFilter('overdue',this)" style="color:#ef4444">逾期</span>
+      <select class="sort-select" id="sortBy" onchange="renderTasks()">
+        <option value="prio">优先级 ↓</option>
+        <option value="due">截止 ↑</option>
+        <option value="added">添加顺序</option>
+        <option value="alpha">名称</option>
+      </select>
+    </div>
+
+    <!-- 添加待办 -->
+    <div class="add-section">
+      <div class="field" style="flex:1;min-width:180px">
+        <label>待办名称</label>
+        <div class="tag-select-wrap" id="taskNameWrap">
+          <div class="tag-select-trigger" id="taskNameTrigger" tabindex="0" onclick="toggleTaskNameDropdown()">
+            <span id="taskNameDisplay" style="color:#bbb;font-size:13px">点击选择或输入新名称</span>
+          </div>
+          <div class="tag-dropdown" id="taskNameDropdown">
+            <div id="taskNameOptList"></div>
+            <div class="custom-add">
+              <input type="text" id="taskNameCustomInput" placeholder="输入新名称..." onkeydown="if(event.key==='Enter'){addCustomTaskName();event.preventDefault()}">
+              <button onclick="addCustomTaskName()">+ 新建</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="field">
-      <label>优先级</label>
-      <select id="taskPrio"><option value="p2">🟡 中</option><option value="p1">🔴 高</option><option value="p3">⚪ 低</option></select>
-    </div>
-    <div class="field">
-      <label>截止</label>
-      <input type="datetime-local" id="taskDue">
-    </div>
-    <div class="field" style="min-width:160px">
-      <label>标签</label>
-      <div class="tag-select-wrap" id="tagSelectWrap">
-        <div class="tag-select-trigger" id="tagTrigger" tabindex="0" onclick="toggleTagDropdown()">
-          <span id="tagChipsContainer"></span>
-          <span class="placeholder" id="tagPlaceholder">点击选择标签</span>
-        </div>
-        <div class="tag-dropdown" id="tagDropdown">
-          <div id="tagOptList"></div>
-          <div class="custom-add">
-            <input type="text" id="tagCustomInput" placeholder="新建标签..." onkeydown="if(event.key==='Enter'){addCustomTag();event.preventDefault()}">
-            <button class="btn btn-primary btn-xs" onclick="addCustomTag()">+</button>
+      <div class="field">
+        <label>优先级</label>
+        <select id="taskPrio"><option value="p2">🟡 中</option><option value="p1">🔴 高</option><option value="p3">⚪ 低</option></select>
+      </div>
+      <div class="field">
+        <label>截止</label>
+        <input type="datetime-local" id="taskDue">
+      </div>
+      <div class="field" style="min-width:150px">
+        <label>标签</label>
+        <div class="tag-select-wrap" id="tagSelectWrap">
+          <div class="tag-select-trigger" id="tagTrigger" tabindex="0" onclick="toggleTagDropdown()">
+            <span id="tagChipsContainer"></span>
+            <span class="placeholder" id="tagPlaceholder">点击选择</span>
+          </div>
+          <div class="tag-dropdown" id="tagDropdown">
+            <div id="tagOptList"></div>
+            <div class="custom-add">
+              <input type="text" id="tagCustomInput" placeholder="新建标签..." onkeydown="if(event.key==='Enter'){addCustomTag();event.preventDefault()}">
+              <button onclick="addCustomTag()">+</button>
+            </div>
           </div>
         </div>
       </div>
+      <div class="field" style="flex:1;min-width:120px">
+        <label>备注</label>
+        <input type="text" id="taskNote" placeholder="备注..." style="width:100%">
+      </div>
+      <div class="add-btns">
+        <button class="btn-main" onclick="addTask()">➕ 添加</button>
+        <button class="btn-second" onclick="openLibManager()">📚 选项库</button>
+      </div>
     </div>
-    <div class="field" style="flex:1;min-width:120px">
-      <label>备注</label>
-      <input type="text" id="taskNote" placeholder="备注..." style="width:100%">
-    </div>
-    <div>
-      <button class="btn btn-primary" onclick="addTask()" style="margin-bottom:0">➕ 添加</button>
-      <button class="btn btn-outline btn-sm" onclick="openLibManager()" style="margin-bottom:0">📚 选项库</button>
-    </div>
-  </div>
-  <div style="display:flex;gap:6px;margin-bottom:10px;font-size:12px;color:#888;align-items:center">
-    <span>排序：</span>
-    <select id="sortBy" onchange="renderTasks()" style="border:1px solid #d0d5dd;border-radius:6px;padding:4px 8px;font-size:12px;outline:none">
-      <option value="prio">优先级（高→低）</option>
-      <option value="due">截止时间（近→远）</option>
-      <option value="added">添加顺序</option>
-      <option value="alpha">名称</option>
-    </select>
-    <span style="margin-left:auto;color:#999" id="filteredCount"></span>
-  </div>
-  <ul class="task-list" id="taskList"><li class="empty-tip">😴 暂无待办</li></ul>
-  <div class="stats">
-    <span>✅ 已完成：<strong id="doneCount">0</strong></span>
-    <span>⏳ 待完成：<strong id="pendCount">0</strong></span>
-    <span>🔴 逾期：<strong id="overdueCount" style="color:#ef4444">0</strong></span>
-    <span>📊 完成率：<strong id="doneRate">0%</strong></span>
-  </div>
-</div>
 
-<div class="card">
-  <div class="card-title">
-    📊 完成明细 <span class="badge green" id="summaryBadge">0 项</span>
-  </div>
-  <ul class="summary-list" id="summaryList"><li class="empty-tip">暂无数据</li></ul>
-  <div style="margin-top:14px">
-    <div class="card-title" style="margin-bottom:8px;font-size:14px">🏷️ 标签分布</div>
-    <div id="tagDistribution" style="font-size:13px;color:#666"></div>
-  </div>
-</div>
-</div>
+    <!-- 任务列表 -->
+    <ul class="task-list" id="taskList"><li class="empty-tip">😴 暂无待办</li></ul>
 
-<div class="card">
-  <div class="export-section">
-    <div class="info">💾 导出工作报表 <strong>Excel (.xlsx)</strong></div>
-    <div class="export-btns">
-      <button class="btn btn-success btn-sm" onclick="exportExcel('day')">📅 导出今日</button>
-      <button class="btn btn-primary btn-sm" onclick="exportExcel('week')">📆 导出本周</button>
-      <button class="btn btn-primary btn-sm" onclick="exportExcel('month')">📆 导出本月</button>
-      <button class="btn btn-outline btn-sm" onclick="resetDay()">🔄 重置今日</button>
+    <!-- 统计 -->
+    <div class="stats">
+      <span>✅ 已完成：<strong id="doneCount">0</strong></span>
+      <span>⏳ 待完成：<strong id="pendCount">0</strong></span>
+      <span>🔴 逾期：<strong class="num red" id="overdueCount">0</strong></span>
+      <span>📊 完成率：<strong id="doneRate">0%</strong></span>
+    </div>
+  </div>
+
+  <!-- 导出 -->
+  <div class="card">
+    <div class="export-section">
+      <div class="info">💾 导出 <strong>Excel</strong> 报表</div>
+      <div class="export-btns">
+        <button class="btn" onclick="exportExcel('day')">📅 今日</button>
+        <button class="btn primary" onclick="exportExcel('week')">📆 本周</button>
+        <button class="btn" onclick="exportExcel('month')">📅 本月</button>
+        <button class="btn danger" onclick="resetDay()">🔄 重置今日</button>
+      </div>
     </div>
   </div>
 </div>
 
+<!-- ===== 右侧：完成明细 ===== -->
+<div>
+  <div class="card">
+    <div class="card-header">
+      <div class="title">📊 完成明细</div>
+      <span class="badge green" id="summaryBadge">0 项</span>
+    </div>
+    <ul class="summary-list" id="summaryList"><li class="empty-tip" style="padding:16px 0">暂无数据</li></ul>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="title">🏷️ 标签分布</div>
+    </div>
+    <div class="tag-dist" id="tagDistribution" style="color:#666;font-size:13px">暂无标签</div>
+  </div>
 </div>
 
-<!-- 编辑弹窗 -->
+</div>
+</div>
+
+<!-- ===== 编辑弹窗 ===== -->
 <div class="modal-overlay" id="editModal">
   <div class="modal-box">
     <h3>✏️ 编辑待办</h3>
@@ -296,32 +391,32 @@
           <div id="editTagOptList"></div>
           <div class="custom-add">
             <input type="text" id="editTagCustomInput" placeholder="新建标签..." onkeydown="if(event.key==='Enter'){addEditCustomTag();event.preventDefault()}">
-            <button class="btn btn-primary btn-xs" onclick="addEditCustomTag()">+</button>
+            <button onclick="addEditCustomTag()">+</button>
           </div>
         </div>
       </div>
     </div>
     <div class="field"><label>备注</label><input type="text" id="editNote" style="width:100%"></div>
     <div class="modal-btns">
-      <button class="btn btn-outline" onclick="closeEditModal()">取消</button>
-      <button class="btn btn-primary" onclick="saveEdit()">💾 保存</button>
+      <button class="btn" onclick="closeEditModal()">取消</button>
+      <button class="btn primary" onclick="saveEdit()">💾 保存</button>
     </div>
   </div>
 </div>
 
-<!-- 确认弹窗 -->
+<!-- ===== 确认弹窗 ===== -->
 <div class="modal-overlay" id="confirmModal">
   <div class="modal-box" style="max-width:320px">
     <h3 id="confirmTitle">⚠️ 确认操作</h3>
     <p id="confirmMsg" style="font-size:15px;color:#555;margin:12px 0 20px"></p>
     <div class="modal-btns">
-      <button class="btn btn-outline" id="confirmCancel">取消</button>
-      <button class="btn btn-danger" id="confirmOk">确认删除</button>
+      <button class="btn" id="confirmCancel">取消</button>
+      <button class="btn danger" id="confirmOk">确认删除</button>
     </div>
   </div>
 </div>
 
-<!-- 选项库管理弹窗 -->
+<!-- ===== 选项库管理 ===== -->
 <div class="modal-overlay" id="libModal">
   <div class="modal-box lib-manager">
     <h3>📚 选项库管理</h3>
@@ -332,50 +427,48 @@
     <div class="tab-panel show" id="libPanelTasks">
       <div class="panel-header">
         <input type="text" id="libNewTask" placeholder="新待办名称..." onkeydown="if(event.key==='Enter')addLibTask()">
-        <button class="btn btn-primary btn-sm" onclick="addLibTask()">添加</button>
+        <button onclick="addLibTask()">添加</button>
       </div>
       <div class="lib-list" id="libTaskList"></div>
     </div>
     <div class="tab-panel" id="libPanelTags">
       <div class="panel-header">
         <input type="text" id="libNewTag" placeholder="新标签..." onkeydown="if(event.key==='Enter')addLibTag()">
-        <button class="btn btn-primary btn-sm" onclick="addLibTag()">添加</button>
+        <button onclick="addLibTag()">添加</button>
       </div>
       <div class="lib-list" id="libTagList"></div>
     </div>
     <div class="modal-btns" style="margin-top:12px">
-      <button class="btn btn-outline" onclick="closeLibManager()">关闭</button>
+      <button class="btn" onclick="closeLibManager()">关闭</button>
     </div>
   </div>
 </div>
 
-<!-- 密码锁弹窗 -->
+<!-- ===== 锁屏弹窗 ===== -->
 <div class="modal-overlay" id="lockModal">
   <div class="modal-box" style="max-width:360px">
-    <div style="text-align:center;margin-bottom:16px">
-      <div style="font-size:40px;margin-bottom:8px" id="lockIcon">🔐</div>
-      <h3 id="lockTitle" style="margin:0">登录</h3>
-      <p id="lockSubtitle" style="font-size:13px;color:#888;margin-top:4px">输入账号密码访问待办系统</p>
+    <div class="lock-box">
+      <div class="icon" id="lockIcon">🔐</div>
+      <h3 id="lockTitle">登录</h3>
+      <p class="sub" id="lockSubtitle">输入账号密码访问待办系统</p>
     </div>
-    <div class="field">
+    <div class="field" style="margin-top:16px">
       <label>用户名</label>
-      <input type="text" id="lockInput" placeholder="用户名..." style="width:100%;padding:10px 12px;border:1px solid #d0d5dd;border-radius:8px;font-size:16px;outline:none;box-sizing:border-box">
+      <input type="text" id="lockInput" placeholder="用户名..." style="width:100%;padding:10px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:16px;outline:none;box-sizing:border-box">
     </div>
     <div class="field">
       <label>密码</label>
-      <input type="password" id="lockPwd" placeholder="密码..." style="width:100%;padding:10px 12px;border:1px solid #d0d5dd;border-radius:8px;font-size:16px;outline:none;box-sizing:border-box">
+      <input type="password" id="lockPwd" placeholder="密码..." style="width:100%;padding:10px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:16px;outline:none;box-sizing:border-box">
     </div>
-    <p id="lockError" style="color:#ef4444;font-size:13px;margin:-6px 0 10px;text-align:center">&nbsp;</p>
+    <p class="lock-error" id="lockError">&nbsp;</p>
     <div class="modal-btns">
-      <button class="btn btn-primary" id="lockBtn" style="width:100%;font-size:15px;padding:10px">登 录</button>
+      <button class="lock-btn" id="lockBtn">登 录</button>
     </div>
-    <p id="lockSwitch" style="font-size:13px;color:#888;text-align:center;margin-top:12px"></p>
+    <p class="lock-switch" id="lockSwitch"></p>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
-
-
 
 <script>
 // ===== 云数据库初始化 =====
@@ -451,19 +544,15 @@ async function cloudSaveTagLib(tags){
 let _cachedLib=null, _cachedTags=null;
 
 async function getLib(){
-  // 如有内存缓存直接返回
   if(_cachedLib) return _cachedLib;
-  // 先从云端加载
   const cloud = await cloudLoadLib();
   if(cloud && cloud.length>0){
     _cachedLib = cloud;
     localStorage.setItem(LS_LIB,JSON.stringify(cloud));
     return cloud;
   }
-  // 再从本地加载
   let r=localStorage.getItem(LS_LIB);
   if(r)try{_cachedLib=JSON.parse(r);return _cachedLib}catch(e){}
-  // 默认
   _cachedLib = [...DEFAULT_LIB];
   return _cachedLib;
 }
@@ -535,7 +624,6 @@ function showLockScreen(){
     _lockResolve=resolve;
     const overlay=$('#lockModal');
     overlay.classList.add('show');
-    // 默认显示登录
     showLoginForm();
   });
 }
@@ -553,10 +641,9 @@ function showLoginForm(){
   $('#lockPwd').type='password';
   $('#lockBtn').textContent='登 录';
   $('#lockBtn').onclick=doLogin;
-  $('#lockSwitch').innerHTML='还没有账号？<a href="#" onclick="showRegisterForm();return false">立即注册</a>';
+  $('#lockSwitch').innerHTML='还没有账号？<a href="#" onclick="showRegisterForm();return false" style="color:#1d1d1f;font-weight:500">立即注册</a>';
   $('#lockInput').focus();
   _mode='login';
-  // 回车键登录
   $('#lockInput').onkeydown=function(e){if(e.key==='Enter')$('#lockPwd').focus()};
   $('#lockPwd').onkeydown=function(e){if(e.key==='Enter')doLogin()};
 }
@@ -574,7 +661,7 @@ function showRegisterForm(){
   $('#lockPwd').type='password';
   $('#lockBtn').textContent='注 册';
   $('#lockBtn').onclick=doRegister;
-  $('#lockSwitch').innerHTML='已有账号？<a href="#" onclick="showLoginForm();return false">立即登录</a>';
+  $('#lockSwitch').innerHTML='已有账号？<a href="#" onclick="showLoginForm();return false" style="color:#1d1d1f;font-weight:500">立即登录</a>';
   _mode='register';
   $('#lockInput').focus();
   $('#lockInput').onkeydown=function(e){if(e.key==='Enter')$('#lockPwd').focus()};
@@ -589,7 +676,7 @@ async function doLogin(){
   if(r.ok){
     setCurrentUser(r.user);_userData=r.user;
     updateUserUI();
-    tasksCache=[];renderAll(); // 登出再登录后立即刷新数据
+    tasksCache=[];renderAll();
     $('#lockModal').classList.remove('show');
     if(_lockResolve)_lockResolve();
   } else {
@@ -607,7 +694,7 @@ async function doRegister(){
   if(r.ok){
     setCurrentUser(r.user);_userData=r.user;
     updateUserUI();
-    tasksCache=[];renderAll(); // 注册后立即刷新数据
+    tasksCache=[];renderAll();
     $('#lockModal').classList.remove('show');
     if(_lockResolve)_lockResolve();
   } else {
@@ -616,15 +703,13 @@ async function doRegister(){
   }
 }
 
-
-// ===== 工具函数 =====
 let _mode='login';
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function toast(msg,color){
   const t=$('#toast');
   t.textContent=msg;
-  t.style.background=color||'#333';
+  t.style.background=color||'#1d1d1f';
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2200);
 }
@@ -644,7 +729,7 @@ function fmtDue(dueStr){
 }
 
 // ===== 云端数据操作 =====
-let tasksCache=[]; // 当前日期的任务缓存
+let tasksCache=[];
 let loading=false;
 
 function showLoading(){loading=true;$('#loadingOverlay').classList.add('show')}
@@ -652,7 +737,6 @@ function hideLoading(){loading=false;$('#loadingOverlay').classList.remove('show
 
 function getUserId(){const u=getCurrentUser();return u?u.username:null}
 
-// 统一刷新右上角用户区域
 function updateUserUI(){
   const u=getCurrentUser();
   if(u&&u.username){
@@ -674,7 +758,6 @@ async function loadTasks(dateStr){
       tasksCache = res.data.filter(t => {
         if(!uid) return false;
         const tags = t.tags ? JSON.parse(t.tags) : [];
-        // 没有 owner 标签的旧数据，或者 owner 标签匹配当前用户
         return !tags.some(x=>x.startsWith('__u:')) || tags.includes('__u:'+uid+'__');
       }).map(t => ({
         id: t.id,
@@ -708,7 +791,6 @@ function safeParseTags(v){
 async function saveTaskToCloud(task){
   try {
     const uid=getUserId();
-    // tags 中混入 owner 标识
     const ownerTag = '__u:'+uid+'__';
     const saveTags = JSON.stringify((task.tags || []).filter(x=>!x.startsWith('__u:')).concat([ownerTag]));
     const data = {
@@ -736,16 +818,15 @@ async function saveTaskToCloud(task){
 
 async function deleteTaskFromCloud(id){
   try {
-    const uid=getUserId();await client.db.from('tasks').delete().eq('id', id);
+    await client.db.from('tasks').delete().eq('id', id);
   } catch(e) {
     console.error('删除失败:', e);
     throw e;
   }
 }
 
-// ===== 手动刷新 =====
 function manualRefresh(){
-  toast('🔄 正在刷新...','#667eea');
+  toast('🔄 正在刷新...','#1d1d1f');
   const d=dateIn.value;
   renderAll();
 }
@@ -753,12 +834,20 @@ function manualRefresh(){
 // ===== DOM refs =====
 const dateIn=$('#curDate');
 const sortBy=$('#sortBy');
-const filterStatus=$('#filterStatus'), filterPriority=$('#filterPriority'), filterTag=$('#filterTag');
-const filterDueFrom=$('#filterDueFrom'), filterDueTo=$('#filterDueTo');
 const taskPrio=$('#taskPrio'), taskDue=$('#taskDue'), taskNote=$('#taskNote');
 const taskList=$('#taskList'), summaryList=$('#summaryList');
 const totalBadge=$('#totalBadge'), doneCount=$('#doneCount'), pendCount=$('#pendCount'), overdueCount=$('#overdueCount'), doneRate=$('#doneRate');
-const summaryBadge=$('#summaryBadge'), filteredCount=$('#filteredCount');
+const summaryBadge=$('#summaryBadge');
+const filterStatus=$( '#filterStatus')||{value:'all'}, filterPriority=$( '#filterPriority')||{value:'all'}, filterTag=$( '#filterTag')||{value:'all'};
+const filterDueFrom=$( '#filterDueFrom')||{value:''}, filterDueTo=$( '#filterDueTo')||{value:''};
+let _filterOverride='all';
+
+function setFilter(val,el){
+  _filterOverride=val;
+  $$('.filter-pills .pill[data-filter]').forEach(p=>p.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderTasks();
+}
 
 // ===== 标签选择 =====
 let selectedTags=[];
@@ -807,7 +896,7 @@ async function renderTaskNameOptions(){
   const lib=await getLib();
   const html=lib.length===0?'<div class="opt" style="color:#aaa;justify-content:center">暂无选项，请在下方新建</div>':
     lib.map(t=>{
-      const active=_selectedTaskName===t?'style="background:#eef2ff"':'';
+      const active=_selectedTaskName===t?'style="background:#f0f0f0"':'';
       return `<div class="opt" ${active} onclick="selectTaskName('${escHtml(t)}')"><span class="label">${escHtml(t)}</span></div>`;
     }).join('');
   $('#taskNameOptList').innerHTML=html;
@@ -820,10 +909,9 @@ async function addCustomTaskName(){
   if(!lib.includes(v)){lib.push(v);await saveLib(lib)}
   _selectedTaskName=v;$('#taskNameCustomInput').value='';renderTaskNameTrigger();await renderTaskNameOptions();$('#taskNameDropdown').classList.remove('show')
 }
-
 function renderTaskNameTrigger(){
   const d=$('#taskNameDisplay');
-  if(_selectedTaskName){d.textContent=_selectedTaskName;d.style.color='#333';d.style.fontWeight='500'}
+  if(_selectedTaskName){d.textContent=_selectedTaskName;d.style.color='#1d1d1f';d.style.fontWeight='500'}
   else{d.textContent='点击选择或输入新名称';d.style.color='#bbb';d.style.fontWeight='normal'}
 }
 
@@ -835,11 +923,12 @@ async function renderAll(){
 }
 
 function getVisibleTasks(){
-  const st=filterStatus.value, pr=filterPriority.value, tg=filterTag.value;
+  const st=_filterOverride, pr=filterPriority.value, tg=filterTag.value;
   const df=filterDueFrom.value, dt=filterDueTo.value;
   let filtered=tasksCache.filter(t=>{
     if(st==='pending'&&t.done)return false;
     if(st==='done'&&!t.done)return false;
+    if(st==='overdue'){if(t.done||!t.due)return false;const dd=new Date(t.due);if(!isNaN(dd.getTime())&&dd>=new Date())return false}
     if(pr!=='all'&&t.prio!==pr)return false;
     if(tg!=='all'){
       const tags=(t.tags||[]).map(x=>x.trim().toLowerCase());
@@ -878,23 +967,25 @@ function renderTasks(){
     taskList.innerHTML=visible.map(t=>{
       const od=isOverdue(t);
       const nameCls=t.done?'name done':'name';
-      const prioLabel={p1:'🔴 高',p2:'🟡 中',p3:'⚪ 低'}[t.prio]||'🟡 中';
+      const prioLabel={p1:'高',p2:'中',p3:'低'}[t.prio]||'中';
       const dueStr=fmtDue(t.due);
+      const odHtml=od?'<span class="overdue">⚠️ 已逾期</span>':'';
       return `<li class="task-item" data-id="${t.id}">
-        <div class="check-col"><input type="checkbox" ${t.done?'checked':''} onchange="toggleDone(${t.id})"></div>
+        <div class="prio-bar ${t.prio||'p2'}"></div>
+        <div class="check-col"><div class="cb ${t.done?'done':''}" onclick="toggleDone(${t.id})">${t.done?'✓':''}</div></div>
         <div class="body-col">
-          <div class="${nameCls}"><span class="prio-dot ${t.prio||'p2'}"></span>${escHtml(t.name)}</div>
+          <div class="${nameCls}">${escHtml(t.name)}</div>
           <div class="meta">
             <span>${prioLabel}</span>
-            ${dueStr?`<span>📅 ${dueStr}${od?' <span class="overdue">⚠️ 已逾期</span>':''}</span>`:''}
+            ${dueStr?`<span>📅 ${dueStr} ${odHtml}</span>`:''}
             ${(t.tags||[]).filter(x=>x.trim()).map(x=>`<span class="tag">${escHtml(x)}</span>`).join('')}
-            ${t.note?`<span style="font-size:11px;color:#999">📝 ${escHtml(t.note)}</span>`:''}
-            ${t.done&&t.doneAt?`<span style="font-size:11px;color:#10b981">✅ ${fmtDoneAt(t.doneAt)}</span>`:''}
+            ${t.note?`<span>📝 ${escHtml(t.note)}</span>`:''}
+            ${t.done&&t.doneAt?`<span>✅ ${fmtDoneAt(t.doneAt)}</span>`:''}
           </div>
         </div>
         <div class="actions-col">
-          <button class="btn-ghost" onclick="editTask(${t.id})">✏️</button>
-          <button class="btn-ghost" onclick="deleteTask(${t.id})">🗑️</button>
+          <button class="btn-icon" onclick="editTask(${t.id})">✏️</button>
+          <button class="btn-icon" onclick="deleteTask(${t.id})">🗑️</button>
         </div>
       </li>`;
     }).join('');
@@ -902,7 +993,6 @@ function renderTasks(){
   updateStats();
   updateSummary();
   updateFilters();
-  filteredCount.textContent=visible.length!==tasksCache.length?`（筛选后 ${visible.length}/${tasksCache.length}）`:'';
 }
 
 function updateStats(){
@@ -923,20 +1013,20 @@ function updateSummary(){
   });
   const entries=Object.values(map);
   if(entries.length===0){
-    summaryList.innerHTML='<li class="empty-tip">暂无数据</li>';
+    summaryList.innerHTML='<li class="empty-tip" style="padding:16px 0">暂无数据</li>';
     summaryBadge.textContent='0 项';
   } else {
     summaryBadge.textContent=entries.length+' 项';
     summaryList.innerHTML=entries.map(e=>{
       const pct=e.total>0?Math.round(e.done/e.total*100):0;
-      return `<li class="summary-item"><span class="name"><span class="prio-dot ${e.prio}"></span>${escHtml(e.name)}</span><span class="num green">✅${e.done}</span><span class="num orange">⏳${e.total-e.done}</span><span style="font-size:11px;color:#999;min-width:32px;text-align:right">${pct}%</span></li>`;
+      return `<li class="summary-item"><span class="name">${escHtml(e.name)}</span><span class="count"><span class="done">✅${e.done}</span> / <span class="pending">⏳${e.total-e.done}</span></span><span class="pct">${pct}%</span></li>`;
     }).join('');
   }
   const tagMap={};
   tasksCache.forEach(t=>(t.tags||[]).forEach(tg=>{const k=tg.trim();if(!k)return;if(!tagMap[k])tagMap[k]={total:0,done:0};tagMap[k].total++;if(t.done)tagMap[k].done++}));
   const tagEntries=Object.entries(tagMap);
   $('#tagDistribution').innerHTML=tagEntries.length===0?'暂无标签':
-    tagEntries.map(([k,v])=>`<span style="display:inline-block;background:#f3f4f6;border-radius:6px;padding:2px 10px;margin:2px 3px;font-size:12px">${escHtml(k)} ${v.done}/${v.total}</span>`).join('');
+    tagEntries.map(([k,v])=>`<span class="tag-chip"><span class="num">${v.done}/${v.total}</span> ${escHtml(k)}</span>`).join('');
 }
 
 function updateFilters(){
@@ -963,7 +1053,7 @@ async function addTask(){
     if(!lib.includes(name)){lib.push(name);await saveLib(lib)}
     _selectedTaskName='';renderTaskNameTrigger();taskDue.value='';taskNote.value='';resetTagPicker();
     await renderAll();
-    toast('✅ 已添加：'+name,'#10b981');
+    toast('✅ 已添加：'+name,'#34c759');
   } catch(e) {
     toast('☁️ 保存失败，请重试','#ef4444');
   }
@@ -1018,7 +1108,7 @@ async function saveEdit(){
     await saveTaskToCloud(t);
     const lib=await getLib();
     if(!lib.includes(name)){lib.push(name);await saveLib(lib)}
-    closeEditModal();renderTasks();toast('✏️ 已更新','#667eea');
+    closeEditModal();renderTasks();toast('✏️ 已更新','#1d1d1f');
   } catch(e) {
     toast('☁️ 更新失败','#ef4444');
   }
@@ -1053,26 +1143,26 @@ function switchLibTab(tab,el){$$('.lib-manager .tab').forEach(t=>t.classList.rem
 async function renderLibTasks(){
   const lib=await getLib();
   if(lib.length===0){$('#libTaskList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">暂无</div>';return}
-  $('#libTaskList').innerHTML=lib.map((t,i)=>`<div class="lib-item"><span class="name">${escHtml(t)}</span><div class="actns"><button class="btn btn-outline btn-xs" onclick="editLibTask(${i})">✏️</button><button class="btn btn-danger btn-xs" onclick="deleteLibTask(${i})">🗑️</button></div></div>`).join('');
+  $('#libTaskList').innerHTML=lib.map((t,i)=>`<div class="lib-item"><span class="name">${escHtml(t)}</span><div class="actns"><button onclick="editLibTask(${i})">✏️</button><button onclick="deleteLibTask(${i})">🗑️</button></div></div>`).join('');
 }
 async function renderLibTags(){
   const lib=await getTagLib();
   if(lib.length===0){$('#libTagList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">暂无</div>';return}
-  $('#libTagList').innerHTML=lib.map((t,i)=>`<div class="lib-item"><span class="name">${escHtml(t)}</span><div class="actns"><button class="btn btn-outline btn-xs" onclick="editLibTag(${i})">✏️</button><button class="btn btn-danger btn-xs" onclick="deleteLibTag(${i})">🗑️</button></div></div>`).join('');
+  $('#libTagList').innerHTML=lib.map((t,i)=>`<div class="lib-item"><span class="name">${escHtml(t)}</span><div class="actns"><button onclick="editLibTag(${i})">✏️</button><button onclick="deleteLibTag(${i})">🗑️</button></div></div>`).join('');
 }
 async function addLibTask(){
   const v=$('#libNewTask').value.trim();if(!v){toast('请输入名称','#f59e0b');return}
   const lib=await getLib();const idx=_libEditIdx.tasks;
   if(idx!==null){if(lib[idx]!==v&&lib.includes(v)){toast('已存在其他同名项','#f59e0b');return}lib[idx]=v;_libEditIdx.tasks=null}
   else{if(lib.includes(v)){toast('已存在','#f59e0b');return}lib.push(v)}
-  await saveLib(lib);$('#libNewTask').value='';await renderLibTasks();toast(idx!==null?'✏️ 已修改':'✅ 已添加','#10b981')
+  await saveLib(lib);$('#libNewTask').value='';await renderLibTasks();toast(idx!==null?'✏️ 已修改':'✅ 已添加','#34c759')
 }
 async function addLibTag(){
   const v=$('#libNewTag').value.trim();if(!v){toast('请输入标签','#f59e0b');return}
   const lib=await getTagLib();const idx=_libEditIdx.tags;
   if(idx!==null){if(lib[idx]!==v&&lib.includes(v)){toast('已存在其他同名项','#f59e0b');return}lib[idx]=v;_libEditIdx.tags=null}
   else{if(lib.includes(v)){toast('已存在','#f59e0b');return}lib.push(v)}
-  await saveTagLib(lib);$('#libNewTag').value='';await renderLibTags();toast(idx!==null?'✏️ 已修改':'✅ 已添加','#10b981')
+  await saveTagLib(lib);$('#libNewTag').value='';await renderLibTags();toast(idx!==null?'✏️ 已修改':'✅ 已添加','#34c759')
 }
 async function deleteLibTask(idx){
   const lib=await getLib();
@@ -1089,16 +1179,16 @@ async function deleteLibTag(idx){
 async function editLibTask(idx){_libEditIdx.tasks=idx;const inp=$('#libNewTask');const lib=await getLib();inp.value=lib[idx];inp.focus();inp.select()}
 async function editLibTag(idx){_libEditIdx.tags=idx;const inp=$('#libNewTag');const lib=await getTagLib();inp.value=lib[idx];inp.focus();inp.select()}
 
-// ===== 确认弹窗 =====
-let _confirmCallback=null;
-function showConfirm(title,msg,okText,cb){
-  $('#confirmTitle').textContent=title;$('#confirmMsg').textContent=msg;$('#confirmOk').textContent=okText;
-  _confirmCallback=cb;$('#confirmModal').classList.add('show')
+// ===== 筛选 & 重置 =====
+function clearFilters(){
+  _filterOverride='all';
+  $$('.filter-pills .pill[data-filter]').forEach(p=>p.classList.remove('active'));
+  const firstPill=$$('.filter-pills .pill[data-filter]')[0];
+  if(firstPill) firstPill.classList.add('active');
+  filterPriority.value='all';filterTag.value='all';filterDueFrom.value='';filterDueTo.value='';
+  renderTasks();
 }
-function doConfirm(yes){$('#confirmModal').classList.remove('show');if(yes&&_confirmCallback)_confirmCallback();_confirmCallback=null}
 
-// ===== 筛选 & 排序 =====
-function clearFilters(){filterStatus.value='all';filterPriority.value='all';filterTag.value='all';filterDueFrom.value='';filterDueTo.value='';renderTasks()}
 async function resetDay(){
   const d=dateIn.value;
   showConfirm('重置确认','确定清空 '+d+' 的所有待办？','清空',async()=>{
@@ -1110,6 +1200,14 @@ async function resetDay(){
     } catch(e) {toast('☁️ 重置失败','#ef4444')}
   });
 }
+
+// ===== 确认弹窗 =====
+let _confirmCallback=null;
+function showConfirm(title,msg,okText,cb){
+  $('#confirmTitle').textContent=title;$('#confirmMsg').textContent=msg;$('#confirmOk').textContent=okText;
+  _confirmCallback=cb;$('#confirmModal').classList.add('show')
+}
+function doConfirm(yes){$('#confirmModal').classList.remove('show');if(yes&&_confirmCallback)_confirmCallback();_confirmCallback=null}
 
 // ===== 导出 =====
 function getDateRange(mode){
@@ -1129,6 +1227,7 @@ function fmtDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2
 
 async function collectRangeData(from,to){
   const rows=[];let seq=0;
+  const uid=getUserId();
   const cur=new Date(from+'T00:00:00');const end=new Date(to+'T00:00:00');
   while(cur<=end){
     const s=fmtDate(cur);
@@ -1136,7 +1235,6 @@ async function collectRangeData(from,to){
       const res=await client.db.from('tasks').list().eq('task_date',s);
       if(res.success&&Array.isArray(res.data)){
         res.data.filter(t=>{
-          if(!uid)return false;
           const tg=t.tags?JSON.parse(t.tags):[];
           return !tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__');
         }).forEach(t=>{
@@ -1187,29 +1285,24 @@ function doExport(aoa,filename){
   ws['!cols']=[{wch:12},{wch:6},{wch:6},{wch:22},{wch:8},{wch:16},{wch:20},{wch:24},{wch:10},{wch:16}];
   XLSX.utils.book_append_sheet(wb,ws,'工作待办');
   XLSX.writeFile(wb,filename);
-  toast('📥 已导出：'+filename,'#10b981');
+  toast('📥 已导出：'+filename,'#34c759');
 }
 function exportCSV(aoa,filename){
   let csv='';aoa.forEach(row=>{csv+=row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')+'\n'});
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename.replace('.xlsx','.csv');
-  a.click();URL.revokeObjectURL(a.href);toast('📥 已导出 CSV','#10b981')
+  a.click();URL.revokeObjectURL(a.href);toast('📥 已导出 CSV','#34c759')
 }
 
 // ===== 事件绑定 =====
 dateIn.addEventListener('change',()=>{weekdayLabel.textContent=weekday(dateIn.value);renderAll()});
-filterStatus.addEventListener('change',renderTasks);
-filterPriority.addEventListener('change',renderTasks);
-filterTag.addEventListener('change',renderTasks);
-filterDueFrom.addEventListener('change',renderTasks);
-filterDueTo.addEventListener('change',renderTasks);
 sortBy.addEventListener('change',renderTasks);
 document.addEventListener('click',function(e){
   if(e.target.id==='confirmOk')doConfirm(true);
   if(e.target.id==='confirmCancel'||e.target.classList.contains('modal-overlay')){if(e.target.id==='confirmCancel'||e.target.id==='confirmModal')doConfirm(false)}
-  const w=$('#tagSelectWrap');if(!w.contains(e.target))tagDropdown.classList.remove('show');
-  const ew=$('#editTagWrap');if(!ew.contains(e.target))$('.edit-tag-dropdown').classList.remove('show');
-  const nw=$('#taskNameWrap');if(!nw.contains(e.target))$('#taskNameDropdown').classList.remove('show');
+  const w=$('#tagSelectWrap');if(w&&!w.contains(e.target))tagDropdown.classList.remove('show');
+  const ew=$('#editTagWrap');if(ew&&!ew.contains(e.target))$('.edit-tag-dropdown').classList.remove('show');
+  const nw=$('#taskNameWrap');if(nw&&!nw.contains(e.target))$('#taskNameDropdown').classList.remove('show');
   if(e.target.classList.contains('modal-overlay')){if(e.target.id!=='confirmModal')closeEditModal()}
 });
 
@@ -1226,8 +1319,6 @@ function logout(){
 
 // ===== 迁移旧数据（首次登录自动归并） =====
 async function migrateOldData(){
-  // ⚠️ 仅迁移无归属的旧数据（没有 __u: 标签的任务）
-  // 已有 owner 的任务不可重复迁移
   try {
     const uid=getUserId();
     if(!uid)return;
@@ -1238,11 +1329,10 @@ async function migrateOldData(){
       const r=await client.db.from('tasks').list();
       if(r.success&&r.data) allTasks.push(...r.data);
     } catch(e){}
-    // 过滤出真正无归属的任务（没有任何 __u: 标签）
     const unowned=allTasks.filter(t=>{
       const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
       return !tg.some(x=>x.startsWith('__u:'));
-    }).filter(t=>t.task_date!=='__auth__'); // 排除认证记录
+    }).filter(t=>t.task_date!=='__auth__');
     if(unowned.length>0){
       for(const t of unowned){
         let tg=[];try{tg=JSON.parse(t.tags||'[]');}catch(e){}
@@ -1261,36 +1351,28 @@ async function migrateOldData(){
 
 // ===== 初始化 =====
 (async function init(){
-  // 检查是否已登录
   const savedUser=getCurrentUser();
   if(savedUser){
     _userData=savedUser;
     updateUserUI();
   } else {
-    // 先弹登录/注册
     await showLockScreen();
     updateUserUI();
   }
-  // 迁移旧数据
   await migrateOldData();
-  // 逾期待办自动顺延（每天一次）
   await rollOverdueTasks();
-  // 加载数据
   const d=todayStr();dateIn.value=d;weekdayLabel.textContent=weekday(d);
   await renderAll();
 })();
 
 // ===== 逾期任务自动顺延到当天 =====
-// 逻辑：查看今天之前未完成的任务，若当天还没有同名任务，则自动复制到当天日期
 async function rollOverdueTasks(){
   const uid=getUserId();
   if(!uid) return;
   const today=todayStr();
-  // 每日期检一次（避免重复扫描）
   const key='auto_roll_date';
   if(localStorage.getItem(key)===today) return;
   try{
-    // 取今天之前的所有任务
     const res=await client.db.from('tasks').list().lt('task_date', today);
     if(!res.success||!res.data) return;
     const overdue=res.data.filter(t=>{
@@ -1300,7 +1382,6 @@ async function rollOverdueTasks(){
       return !tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__');
     });
     if(overdue.length===0){localStorage.setItem(key,today);return;}
-    // 取今天已有的任务（查重用）
     const r2=await client.db.from('tasks').list().eq('task_date', today);
     let todayNames=new Set();
     if(r2.success&&r2.data){
@@ -1313,31 +1394,22 @@ async function rollOverdueTasks(){
     }
     let count=0;
     for(const t of overdue){
-      if(todayNames.has(t.name)) continue; // 今天已有同名任务，跳过
-      todayNames.add(t.name); // 避免本次循环内重复
+      if(todayNames.has(t.name)) continue;
+      todayNames.add(t.name);
       const ownerTag='__u:'+uid+'__';
       const tags=[];try{tags.push(...JSON.parse(t.tags||'[]'));}catch(e){}
       const saveTags=JSON.stringify(tags.filter(x=>!x.startsWith('__u:')).concat([ownerTag]));
       await client.db.from('tasks').insert().values({
-        task_date: today,
-        name: t.name,
-        prio: t.prio||'p2',
-        due: t.due||'',
-        tags: saveTags,
-        note: t.note||'',
-        done: 'false',
-        done_at: '',
-        ts: new Date().toISOString()
+        task_date: today, name: t.name, prio: t.prio||'p2', due: t.due||'', tags: saveTags, note: t.note||'', done: 'false', done_at: '', ts: new Date().toISOString()
       });
       count++;
     }
     localStorage.setItem(key,today);
-    if(count>0) toast('📋 自动顺延 '+count+' 项待办到今天','#667eea');
+    if(count>0) toast('📋 自动顺延 '+count+' 项待办到今天','#1d1d1f');
   }catch(e){
     console.warn('逾期顺延跳过:',e);
   }
 }
-
 
 </script>
 </body>
