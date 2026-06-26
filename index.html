@@ -822,6 +822,7 @@ async function addCustomTaskName(){
   const lib=await getLib();
   if(!lib.includes(v)){lib.push(v);await saveLib(lib)}
   _selectedTaskName=v;$('#taskNameCustomInput').value='';renderTaskNameTrigger();await renderTaskNameOptions();$('#taskNameDropdown').classList.remove('show')
+}
 
 function renderTaskNameTrigger(){
   const d=$('#taskNameDisplay');
