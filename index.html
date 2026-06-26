@@ -389,19 +389,112 @@ const client = aipexbase.createClient({ baseUrl: BASE_URL, apiKey: API_KEY });
 // ===== 本地选项库 =====
 const LS_LIB = 'cloud_task_lib';
 const LS_TAGS = 'cloud_tags';
+const DEFAULT_LIB = ['编写日报','编写周报','晨会汇报','代码 Review','功能开发','Bug 修复','单元测试','需求评审','技术方案设计','项目同步','客户沟通','文档编写','线上问题排查','性能优化','发布上线'];
+const DEFAULT_TAGS = ['开发','紧急','前端','后端','测试','文档','会议','沟通','设计','运维','产品','日常'];
 
-function getLib(){
+// ---- 云端名称库同步 ----
+async function cloudLoadLib(){
+  try {
+    const uid=getUserId();
+    if(!uid) return null;
+    const r=await client.db.from('tasks').list().eq('task_date','__lib__').eq('name','task_names'+uid);
+    if(r.success && r.data && r.data.length>0){
+      const note=r.data[0].note||'';
+      if(note) return JSON.parse(note);
+    }
+  }catch(e){}
+  return null;
+}
+async function cloudSaveLib(lib){
+  try {
+    const uid=getUserId();
+    if(!uid) return;
+    const ownerTag='__u:'+uid+'__';
+    const r=await client.db.from('tasks').list().eq('task_date','__lib__').eq('name','task_names'+uid);
+    if(r.success && r.data && r.data.length>0){
+      await client.db.from('tasks').update().set({note:JSON.stringify(lib)}).eq('id',r.data[0].id);
+    } else {
+      await client.db.from('tasks').insert().values({
+        task_date:'__lib__', name:'task_names'+uid, note:JSON.stringify(lib),
+        prio:'', due:'', tags:JSON.stringify([ownerTag]), done:'false', done_at:'', ts:new Date().toISOString()
+      });
+    }
+  }catch(e){console.warn('cloudSaveLib error:',e)}
+}
+// ---- 云端标签库同步 ----
+async function cloudLoadTagLib(){
+  try {
+    const uid=getUserId();
+    if(!uid) return null;
+    const r=await client.db.from('tasks').list().eq('task_date','__lib__').eq('name','tag_names'+uid);
+    if(r.success && r.data && r.data.length>0){
+      const note=r.data[0].note||'';
+      if(note) return JSON.parse(note);
+    }
+  }catch(e){}
+  return null;
+}
+async function cloudSaveTagLib(tags){
+  try {
+    const uid=getUserId();
+    if(!uid) return;
+    const ownerTag='__u:'+uid+'__';
+    const r=await client.db.from('tasks').list().eq('task_date','__lib__').eq('name','tag_names'+uid);
+    if(r.success && r.data && r.data.length>0){
+      await client.db.from('tasks').update().set({note:JSON.stringify(tags)}).eq('id',r.data[0].id);
+    } else {
+      await client.db.from('tasks').insert().values({
+        task_date:'__lib__', name:'tag_names'+uid, note:JSON.stringify(tags),
+        prio:'', due:'', tags:JSON.stringify([ownerTag]), done:'false', done_at:'', ts:new Date().toISOString()
+      });
+    }
+  }catch(e){console.warn('cloudSaveTagLib error:',e)}
+}
+
+let _cachedLib=null, _cachedTags=null;
+
+async function getLib(){
+  // 如有内存缓存直接返回
+  if(_cachedLib) return _cachedLib;
+  // 先从云端加载
+  const cloud = await cloudLoadLib();
+  if(cloud && cloud.length>0){
+    _cachedLib = cloud;
+    localStorage.setItem(LS_LIB,JSON.stringify(cloud));
+    return cloud;
+  }
+  // 再从本地加载
   let r=localStorage.getItem(LS_LIB);
-  if(r)try{return JSON.parse(r)}catch(e){}
-  return ['编写日报','编写周报','晨会汇报','代码 Review','功能开发','Bug 修复','单元测试','需求评审','技术方案设计','项目同步','客户沟通','文档编写','线上问题排查','性能优化','发布上线'];
+  if(r)try{_cachedLib=JSON.parse(r);return _cachedLib}catch(e){}
+  // 默认
+  _cachedLib = [...DEFAULT_LIB];
+  return _cachedLib;
 }
-function saveLib(l){localStorage.setItem(LS_LIB,JSON.stringify(l))}
-function getTagLib(){
+function invalidateLibCache(){_cachedLib=null}
+async function saveLib(l){
+  localStorage.setItem(LS_LIB,JSON.stringify(l));
+  _cachedLib = l;
+  await cloudSaveLib(l);
+}
+async function getTagLib(){
+  if(_cachedTags) return _cachedTags;
+  const cloud = await cloudLoadTagLib();
+  if(cloud && cloud.length>0){
+    _cachedTags = cloud;
+    localStorage.setItem(LS_TAGS,JSON.stringify(cloud));
+    return cloud;
+  }
   let r=localStorage.getItem(LS_TAGS);
-  if(r)try{return JSON.parse(r)}catch(e){}
-  return ['开发','紧急','前端','后端','测试','文档','会议','沟通','设计','运维','产品','日常'];
+  if(r)try{_cachedTags=JSON.parse(r);return _cachedTags}catch(e){}
+  _cachedTags = [...DEFAULT_TAGS];
+  return _cachedTags;
 }
-function saveTagLib(t){localStorage.setItem(LS_TAGS,JSON.stringify(t))}
+function invalidateTagsCache(){_cachedTags=null}
+async function saveTagLib(t){
+  localStorage.setItem(LS_TAGS,JSON.stringify(t));
+  _cachedTags = t;
+  await cloudSaveTagLib(t);
+}
 
 // ===== 用户账号系统 =====
 const USER_KEY = 'cloud_todo_user';
@@ -674,47 +767,47 @@ const summaryBadge=$('#summaryBadge'), filteredCount=$('#filteredCount');
 let selectedTags=[];
 const tagTrigger=$('#tagTrigger'), tagDropdown=$('#tagDropdown'), tagPlaceholder=$('#tagPlaceholder'), tagOptList=$('#tagOptList'), tagCustomInput=$('#tagCustomInput'), tagChipsContainer=$('#tagChipsContainer');
 
-function toggleTagDropdown(){
+async function toggleTagDropdown(){
   const show=tagDropdown.classList.toggle('show');
-  if(show){renderTagOptions();tagCustomInput.focus()}
+  if(show){await renderTagOptions();tagCustomInput.focus()}
 }
-function renderTagOptions(){
-  const all=getTagLib();
+async function renderTagOptions(){
+  const all=await getTagLib();
   tagOptList.innerHTML=all.map(t=>{
     const checked=selectedTags.includes(t)?'checked':'';
     return `<div class="opt"><input type="checkbox" ${checked} data-tag="${escHtml(t)}" onchange="toggleTagOpt(this.dataset.tag)"><span class="label">${escHtml(t)}</span></div>`;
   }).join('');
 }
-function toggleTagOpt(tag){
+async function toggleTagOpt(tag){
   const idx=selectedTags.indexOf(tag);
   if(idx>-1) selectedTags.splice(idx,1);else selectedTags.push(tag);
-  renderTagChips();renderTagOptions();
+  renderTagChips();await renderTagOptions();
 }
-function addCustomTag(){
+async function addCustomTag(){
   const v=tagCustomInput.value.trim();
   if(!v) return;
-  const all=getTagLib();
-  if(!all.includes(v)){all.push(v);saveTagLib(all)}
+  const all=await getTagLib();
+  if(!all.includes(v)){all.push(v);await saveTagLib(all)}
   if(!selectedTags.includes(v)) selectedTags.push(v);
-  tagCustomInput.value='';renderTagChips();renderTagOptions();
+  tagCustomInput.value='';renderTagChips();await renderTagOptions();
 }
 function renderTagChips(){
   tagChipsContainer.innerHTML=selectedTags.map(t=>`<span class="tag-chip">${escHtml(t)}<span class="remove" data-tag="${escHtml(t)}" onclick="removeTag(this.dataset.tag);event.stopPropagation()">×</span></span>`).join('');
   tagPlaceholder.style.display=selectedTags.length===0?'':'none';
 }
-function removeTag(tag){selectedTags=selectedTags.filter(t=>t!==tag);renderTagChips();renderTagOptions()}
+async function removeTag(tag){selectedTags=selectedTags.filter(t=>t!==tag);renderTagChips();await renderTagOptions()}
 function resetTagPicker(){selectedTags=[];renderTagChips()}
 
 // ===== 待办名称下拉 =====
 let _selectedTaskName='';
-function toggleTaskNameDropdown(){
+async function toggleTaskNameDropdown(){
   const dd=$('#taskNameDropdown');
   dd.classList.toggle('show');
-  renderTaskNameOptions();
+  await renderTaskNameOptions();
   if(dd.classList.contains('show')&&!_selectedTaskName) $('#taskNameCustomInput').focus();
 }
-function renderTaskNameOptions(){
-  const lib=getLib();
+async function renderTaskNameOptions(){
+  const lib=await getLib();
   const html=lib.length===0?'<div class="opt" style="color:#aaa;justify-content:center">暂无选项，请在下方新建</div>':
     lib.map(t=>{
       const active=_selectedTaskName===t?'style="background:#eef2ff"':'';
@@ -722,14 +815,14 @@ function renderTaskNameOptions(){
     }).join('');
   $('#taskNameOptList').innerHTML=html;
 }
-function selectTaskName(n){_selectedTaskName=n;renderTaskNameTrigger();renderTaskNameOptions();$('#taskNameDropdown').classList.remove('show')}
-function addCustomTaskName(){
+async function selectTaskName(n){_selectedTaskName=n;renderTaskNameTrigger();await renderTaskNameOptions();$('#taskNameDropdown').classList.remove('show')}
+async function addCustomTaskName(){
   const v=$('#taskNameCustomInput').value.trim();
   if(!v){toast('请输入名称','#f59e0b');return}
-  const lib=getLib();
-  if(!lib.includes(v)){lib.push(v);saveLib(lib)}
-  _selectedTaskName=v;$('#taskNameCustomInput').value='';renderTaskNameTrigger();renderTaskNameOptions();$('#taskNameDropdown').classList.remove('show')
-}
+  const lib=await getLib();
+  if(!lib.includes(v)){lib.push(v);await saveLib(lib)}
+  _selectedTaskName=v;$('#taskNameCustomInput').value='';renderTaskNameTrigger();await renderTaskNameOptions();$('#taskNameDropdown').classList.remove('show')
+
 function renderTaskNameTrigger(){
   const d=$('#taskNameDisplay');
   if(_selectedTaskName){d.textContent=_selectedTaskName;d.style.color='#333';d.style.fontWeight='500'}
@@ -739,7 +832,7 @@ function renderTaskNameTrigger(){
 // ===== 核心渲染 =====
 async function renderAll(){
   await loadTasks(dateIn.value);
-  renderTaskNameOptions();
+  await renderTaskNameOptions();
   renderTasks();
 }
 
@@ -868,8 +961,8 @@ async function addTask(){
       done: false, doneAt: null, ts: new Date().toISOString()
     };
     await saveTaskToCloud(task);
-    const lib=getLib();
-    if(!lib.includes(name)){lib.push(name);saveLib(lib)}
+    const lib=await getLib();
+    if(!lib.includes(name)){lib.push(name);await saveLib(lib)}
     _selectedTaskName='';renderTaskNameTrigger();taskDue.value='';taskNote.value='';resetTagPicker();
     await renderAll();
     toast('✅ 已添加：'+name,'#10b981');
@@ -925,68 +1018,78 @@ async function saveEdit(){
   t.name=name;t.prio=$('#editPrio').value;t.due=$('#editDue').value||'';t.tags=[..._editTags];t.note=$('#editNote').value.trim();
   try {
     await saveTaskToCloud(t);
-    const lib=getLib();
-    if(!lib.includes(name)){lib.push(name);saveLib(lib)}
+    const lib=await getLib();
+    if(!lib.includes(name)){lib.push(name);await saveLib(lib)}
     closeEditModal();renderTasks();toast('✏️ 已更新','#667eea');
   } catch(e) {
     toast('☁️ 更新失败','#ef4444');
   }
 }
-function toggleEditTagDropdown(){const dd=$('.edit-tag-dropdown');dd.classList.toggle('show');renderEditTagOptions();if(dd.classList.contains('show'))$('#editTagCustomInput').focus()}
-function renderEditTagOptions(){
-  const all=getTagLib();
+async function toggleEditTagDropdown(){const dd=$('.edit-tag-dropdown');dd.classList.toggle('show');await renderEditTagOptions();if(dd.classList.contains('show'))$('#editTagCustomInput').focus()}
+async function renderEditTagOptions(){
+  const all=await getTagLib();
   $('#editTagOptList').innerHTML=all.map(t=>{
     const checked=_editTags.includes(t)?'checked':'';
     return `<div class="opt"><input type="checkbox" ${checked} data-tag="${escHtml(t)}" onchange="toggleEditTag(this.dataset.tag)"><span class="label">${escHtml(t)}</span></div>`;
   }).join('');
 }
-function toggleEditTag(tag){const idx=_editTags.indexOf(tag);if(idx>-1)_editTags.splice(idx,1);else _editTags.push(tag);renderEditTagChips();renderEditTagOptions()}
-function addEditCustomTag(){
+async function toggleEditTag(tag){const idx=_editTags.indexOf(tag);if(idx>-1)_editTags.splice(idx,1);else _editTags.push(tag);renderEditTagChips();await renderEditTagOptions()}
+async function addEditCustomTag(){
   const v=$('#editTagCustomInput').value.trim();
-  if(!v)return;const all=getTagLib();
-  if(!all.includes(v)){all.push(v);saveTagLib(all)}
+  if(!v)return;const all=await getTagLib();
+  if(!all.includes(v)){all.push(v);await saveTagLib(all)}
   if(!_editTags.includes(v))_editTags.push(v);
-  $('#editTagCustomInput').value='';renderEditTagChips();renderEditTagOptions()
+  $('#editTagCustomInput').value='';renderEditTagChips();await renderEditTagOptions()
 }
 function renderEditTagChips(){
   $('#editTagChipsContainer').innerHTML=_editTags.map(t=>`<span class="tag-chip">${escHtml(t)}<span class="remove" data-tag="${escHtml(t)}" onclick="removeEditTag(this.dataset.tag);event.stopPropagation()">×</span></span>`).join('');
   $('#editTagPlaceholder').style.display=_editTags.length===0?'':'none';
 }
-function removeEditTag(tag){_editTags=_editTags.filter(t=>t!==tag);renderEditTagChips();renderEditTagOptions()}
+async function removeEditTag(tag){_editTags=_editTags.filter(t=>t!==tag);renderEditTagChips();await renderEditTagOptions()}
 
 // ===== 选项库管理 =====
 let _libEditIdx={tasks:null,tags:null};
-function openLibManager(){_libEditIdx={tasks:null,tags:null};renderLibTasks();renderLibTags();$('#libModal').classList.add('show')}
-function closeLibManager(){$('#libModal').classList.remove('show');renderAll()}
+async function openLibManager(){_libEditIdx={tasks:null,tags:null};await renderLibTasks();await renderLibTags();$('#libModal').classList.add('show')}
+async function closeLibManager(){$('#libModal').classList.remove('show');await renderAll()}
 function switchLibTab(tab,el){$$('.lib-manager .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');$$('.lib-manager .tab-panel').forEach(p=>p.classList.remove('show'));$('#libPanel'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('show')}
-function renderLibTasks(){
-  const lib=getLib();
+async function renderLibTasks(){
+  const lib=await getLib();
   if(lib.length===0){$('#libTaskList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">暂无</div>';return}
   $('#libTaskList').innerHTML=lib.map((t,i)=>`<div class="lib-item"><span class="name">${escHtml(t)}</span><div class="actns"><button class="btn btn-outline btn-xs" onclick="editLibTask(${i})">✏️</button><button class="btn btn-danger btn-xs" onclick="deleteLibTask(${i})">🗑️</button></div></div>`).join('');
 }
-function renderLibTags(){
-  const lib=getTagLib();
+async function renderLibTags(){
+  const lib=await getTagLib();
   if(lib.length===0){$('#libTagList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">暂无</div>';return}
   $('#libTagList').innerHTML=lib.map((t,i)=>`<div class="lib-item"><span class="name">${escHtml(t)}</span><div class="actns"><button class="btn btn-outline btn-xs" onclick="editLibTag(${i})">✏️</button><button class="btn btn-danger btn-xs" onclick="deleteLibTag(${i})">🗑️</button></div></div>`).join('');
 }
-function addLibTask(){
+async function addLibTask(){
   const v=$('#libNewTask').value.trim();if(!v){toast('请输入名称','#f59e0b');return}
-  const lib=getLib();const idx=_libEditIdx.tasks;
+  const lib=await getLib();const idx=_libEditIdx.tasks;
   if(idx!==null){if(lib[idx]!==v&&lib.includes(v)){toast('已存在其他同名项','#f59e0b');return}lib[idx]=v;_libEditIdx.tasks=null}
   else{if(lib.includes(v)){toast('已存在','#f59e0b');return}lib.push(v)}
-  saveLib(lib);$('#libNewTask').value='';renderLibTasks();toast(idx!==null?'✏️ 已修改':'✅ 已添加','#10b981')
+  await saveLib(lib);$('#libNewTask').value='';await renderLibTasks();toast(idx!==null?'✏️ 已修改':'✅ 已添加','#10b981')
 }
-function addLibTag(){
+async function addLibTag(){
   const v=$('#libNewTag').value.trim();if(!v){toast('请输入标签','#f59e0b');return}
-  const lib=getTagLib();const idx=_libEditIdx.tags;
+  const lib=await getTagLib();const idx=_libEditIdx.tags;
   if(idx!==null){if(lib[idx]!==v&&lib.includes(v)){toast('已存在其他同名项','#f59e0b');return}lib[idx]=v;_libEditIdx.tags=null}
   else{if(lib.includes(v)){toast('已存在','#f59e0b');return}lib.push(v)}
-  saveTagLib(lib);$('#libNewTag').value='';renderLibTags();toast(idx!==null?'✏️ 已修改':'✅ 已添加','#10b981')
+  await saveTagLib(lib);$('#libNewTag').value='';await renderLibTags();toast(idx!==null?'✏️ 已修改':'✅ 已添加','#10b981')
 }
-function deleteLibTask(idx){const lib=getLib();showConfirm('删除确认','删除 "'+lib[idx]+'" ？','删除',()=>{lib.splice(idx,1);saveLib(lib);renderLibTasks();toast('已删除','#ef4444')})}
-function deleteLibTag(idx){const lib=getTagLib();showConfirm('删除确认','删除 "'+lib[idx]+'" ？','删除',()=>{lib.splice(idx,1);saveTagLib(lib);renderLibTags();toast('已删除','#ef4444')})}
-function editLibTask(idx){_libEditIdx.tasks=idx;const inp=$('#libNewTask');inp.value=getLib()[idx];inp.focus();inp.select()}
-function editLibTag(idx){_libEditIdx.tags=idx;const inp=$('#libNewTag');inp.value=getTagLib()[idx];inp.focus();inp.select()}
+async function deleteLibTask(idx){
+  const lib=await getLib();
+  showConfirm('删除确认','删除 "'+lib[idx]+'" ？','删除',async()=>{
+    lib.splice(idx,1);await saveLib(lib);await renderLibTasks();toast('已删除','#ef4444');
+  });
+}
+async function deleteLibTag(idx){
+  const lib=await getTagLib();
+  showConfirm('删除确认','删除 "'+lib[idx]+'" ？','删除',async()=>{
+    lib.splice(idx,1);await saveTagLib(lib);await renderLibTags();toast('已删除','#ef4444');
+  });
+}
+async function editLibTask(idx){_libEditIdx.tasks=idx;const inp=$('#libNewTask');const lib=await getLib();inp.value=lib[idx];inp.focus();inp.select()}
+async function editLibTag(idx){_libEditIdx.tags=idx;const inp=$('#libNewTag');const lib=await getTagLib();inp.value=lib[idx];inp.focus();inp.select()}
 
 // ===== 确认弹窗 =====
 let _confirmCallback=null;
