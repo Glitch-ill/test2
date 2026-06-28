@@ -144,12 +144,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 
 /* 编辑标签选择 */
 
+/* ===== 任务名称下拉（选项库） ===== */
+.tag-select-wrap{position:relative;min-width:160px}
+.tag-select-trigger{display:flex;flex-wrap:wrap;gap:3px;padding:6px 10px;border:1px solid #e8e8e8;border-radius:8px;font-size:13px;cursor:pointer;background:#fafafa;min-height:33px;align-items:center}
+.tag-select-trigger:focus,.tag-select-trigger.open{border-color:#1d1d1f;background:white}
+.tag-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid #e0e0e0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:100;max-height:200px;overflow-y:auto;padding:6px 0}
+.tag-dropdown.show{display:block}
+.tag-dropdown .opt{padding:7px 14px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px}
+.tag-dropdown .opt:hover{background:#f5f5f5}
+.tag-dropdown .opt .label{flex:1}
+.tag-dropdown .custom-add{display:flex;padding:7px 14px;gap:6px;border-top:1px solid #eee}
+.tag-dropdown .custom-add input{flex:1;border:1px solid #e0e0e0;border-radius:6px;padding:5px 8px;font-size:12px;outline:none;min-width:0}
+.tag-dropdown .custom-add input:focus{border-color:#1d1d1f}
+.tag-dropdown .custom-add button{background:#1d1d1f;color:white;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer}
+
 /* ===== 选项库管理 ===== */
 .lib-manager .tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #eee}
 .lib-manager .tabs .tab{padding:8px 16px;cursor:pointer;font-size:14px;font-weight:600;color:#888;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
 .lib-manager .tabs .tab.active{color:#1d1d1f;border-bottom-color:#1d1d1f}
-.lib-manager .tab-panel{display:none}
-.lib-manager .tab-panel.show{display:block}
 .lib-manager .panel-header{display:flex;gap:8px;margin-bottom:12px}
 .lib-manager .panel-header input{flex:1;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;box-sizing:border-box}
 .lib-manager .panel-header input:focus{border-color:#1d1d1f}
@@ -380,20 +392,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 <div class="modal-overlay" id="libModal">
   <div class="modal-box lib-manager">
     <h3>📚 选项库管理</h3>
-    <div class="tabs">
-      <div class="tab active" onclick="switchLibTab('tasks',this)">📋 待办名称</div>      
-    </div>
     <div class="tab-panel show" id="libPanelTasks">
       <div class="panel-header">
         <input type="text" id="libNewTask" placeholder="新待办名称..." onkeydown="if(event.key==='Enter')addLibTask()">
         <button onclick="addLibTask()">添加</button>
       </div>
       <div class="lib-list" id="libTaskList"></div>
-    </div>
-    <div class="tab-panel" id="libPanelTags">
-      <div class="panel-header">
-      </div>
-      
     </div>
     <div class="modal-btns" style="margin-top:12px">
       <button class="btn" onclick="closeLibManager()">关闭</button>
@@ -764,11 +768,10 @@ function setFilter(val,el){
   renderTasks();
 }
 
-// ===== 标签选择 =====
+// ===== 待办名称下拉 =====
 let selectedTags=[];
 function resetTagPicker(){selectedTags=[]}
 
-// ===== 待办名称下拉 =====
 let _selectedTaskName='';
 async function toggleTaskNameDropdown(){
   const dd=$('#taskNameDropdown');
@@ -967,9 +970,9 @@ function editTask(id){
   const t=tasksCache.find(x=>x.id===id);
   if(!t)return;
   _editId=id;$('#editName').value=t.name;$('#editPrio').value=t.prio||'p2';$('#editDue').value=t.due||'';$('#editNote').value=t.note||'';
-  _editTags=[...(t.tags||[])];$('#editModal').classList.add('show');
+  _editTags=[...(t.tags||[])];$('#editModal').classList.add('show');$('body').style.overflow='hidden';
 }
-function closeEditModal(){$('#editModal').classList.remove('show');_editId=null;}
+function closeEditModal(){$('body').style.overflow='';$('#editModal').classList.remove('show');_editId=null;}
 async function saveEdit(){
   if(_editId===null)return;
   const t=tasksCache.find(x=>x.id===_editId);
@@ -993,8 +996,8 @@ async function addEditCustomTag(){
   $('#editCustomTag').value='';}
 // ===== 选项库管理 =====
 let _libEditIdx={tasks:null,tags:null};
-async function openLibManager(){_libEditIdx={tasks:null,tags:null};await renderLibTasks();$('#libModal').classList.add('show')}
-async function closeLibManager(){$('#libModal').classList.remove('show');await renderAll()}
+async function openLibManager(){$('body').style.overflow='hidden';_libEditIdx={tasks:null,tags:null};await renderLibTasks();$('#libModal').classList.add('show')}
+async function closeLibManager(){$('body').style.overflow='';$('#libModal').classList.remove('show');await renderAll()}
 async function renderLibTasks(){
   const lib=await getLib();
   if(lib.length===0){$('#libTaskList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">暂无</div>';return}
@@ -1124,7 +1127,11 @@ document.addEventListener('click',function(e){
   if(e.target.id==='confirmOk')doConfirm(true);
   if(e.target.id==='confirmCancel'||e.target.classList.contains('modal-overlay')){if(e.target.id==='confirmCancel'||e.target.id==='confirmModal')doConfirm(false)}
   const nw=$('#taskNameWrap');if(nw&&!nw.contains(e.target))$('#taskNameDropdown').classList.remove('show');
-  if(e.target.classList.contains('modal-overlay')){if(e.target.id!=='confirmModal')closeEditModal()}
+  if(e.target.classList.contains('modal-overlay')){
+    if(e.target.id==='confirmModal'){return}
+    if(e.target.id==='libModal'){closeLibManager()}
+    else if(e.target.id==='editModal'){closeEditModal()}
+  }
 });
 
 // ===== 登出 =====
