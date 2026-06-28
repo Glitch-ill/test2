@@ -51,7 +51,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 .filter-pills .pill{flex-shrink:0;padding:5px 12px;border-radius:100px;font-size:12px;font-weight:500;cursor:pointer;background:#f5f5f7;color:#666;border:1px solid transparent;transition:all .15s}
 .filter-pills .pill:hover{background:#e8e8ed}
 .filter-pills .pill.active{background:#1d1d1f;color:white;border-color:#1d1d1f}
-.filter-pills .pill.tag-active{background:#f0f0f0;color:#1d1d1f}
 .filter-pills .sort-select{flex-shrink:0;padding:5px 10px;border:1px solid #e8e8e8;border-radius:100px;font-size:12px;outline:none;background:#f5f5f7;color:#666;margin-left:auto}
 
 /* ===== 添加待办区域 ===== */
@@ -71,23 +70,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 .add-btns .btn-second:hover{background:#f5f5f5}
 
 /* ===== 标签选择器 ===== */
-.tag-select-wrap{position:relative;min-width:160px}
-.tag-select-trigger{display:flex;flex-wrap:wrap;gap:3px;padding:6px 10px;border:1px solid #e8e8e8;border-radius:8px;font-size:13px;cursor:pointer;background:#fafafa;min-height:33px;align-items:center}
-.tag-select-trigger:focus,.tag-select-trigger.open{border-color:#1d1d1f;background:white}
-.tag-select-trigger .placeholder{color:#bbb;font-size:13px}
-.tag-chip{display:inline-flex;align-items:center;gap:3px;background:#f0f0f0;color:#555;border-radius:4px;padding:1px 7px;font-size:11px;line-height:20px}
-.tag-chip .remove{cursor:pointer;font-weight:700;font-size:13px;line-height:1;margin-left:2px;color:#999}
-.tag-chip .remove:hover{color:#ef4444}
-.tag-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid #e0e0e0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:100;max-height:200px;overflow-y:auto;padding:6px 0}
-.tag-dropdown.show{display:block}
-.tag-dropdown .opt{padding:7px 14px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px}
-.tag-dropdown .opt:hover{background:#f5f5f5}
-.tag-dropdown .opt input[type=checkbox]{accent-color:#1d1d1f;width:15px;height:15px}
-.tag-dropdown .opt .label{flex:1}
-.tag-dropdown .custom-add{display:flex;padding:7px 14px;gap:6px;border-top:1px solid #eee}
-.tag-dropdown .custom-add input{flex:1;border:1px solid #e0e0e0;border-radius:6px;padding:5px 8px;font-size:12px;outline:none;min-width:0}
-.tag-dropdown .custom-add input:focus{border-color:#1d1d1f}
-.tag-dropdown .custom-add button{background:#1d1d1f;color:white;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer}
 
 /* ===== 任务列表 ===== */
 .task-list{list-style:none}
@@ -104,7 +86,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 .task-item .body-col .name{font-size:14px;font-weight:500;word-break:break-word}
 .task-item .body-col .name.done{text-decoration:line-through;color:#aaa}
 .task-item .body-col .meta{font-size:12px;color:#86868b;margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 8px}
-.task-item .body-col .meta .tag{background:#f0f0f0;border-radius:4px;padding:1px 7px;font-size:11px;display:inline-block}
 .task-item .body-col .meta .overdue{color:#ef4444;font-weight:600}
 .task-item .actions-col{flex-shrink:0;display:flex;gap:4px;align-items:center}
 .task-item .actions-col .btn-icon{background:transparent;border:none;color:#999;cursor:pointer;padding:2px 4px;font-size:14px;border-radius:4px}
@@ -162,20 +143,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 .modal-btns .btn.danger{color:#ef4444}
 
 /* 编辑标签选择 */
-.edit-tags-wrap{position:relative}
-.edit-tags-trigger{display:flex;flex-wrap:wrap;gap:4px;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;cursor:pointer;background:#fafafa;min-height:38px;align-items:center}
-.edit-tags-trigger:focus,.edit-tags-trigger.open{border-color:#1d1d1f;background:white}
-.edit-tags-trigger .placeholder{color:#bbb}
-.edit-tag-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid #e0e0e0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:101;max-height:200px;overflow-y:auto;padding:6px 0}
-.edit-tag-dropdown.show{display:block}
-.edit-tag-dropdown .opt{padding:7px 14px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px}
-.edit-tag-dropdown .opt:hover{background:#f5f5f5}
-.edit-tag-dropdown .opt input[type=checkbox]{accent-color:#1d1d1f;width:15px;height:15px}
-.edit-tag-dropdown .opt .label{flex:1}
-.edit-tag-dropdown .custom-add{display:flex;padding:7px 14px;gap:6px;border-top:1px solid #eee}
-.edit-tag-dropdown .custom-add input{flex:1;border:1px solid #e0e0e0;border-radius:6px;padding:5px 8px;font-size:12px;outline:none;min-width:0}
-.edit-tag-dropdown .custom-add input:focus{border-color:#1d1d1f}
-.edit-tag-dropdown .custom-add button{background:#1d1d1f;color:white;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer}
 
 /* ===== 选项库管理 ===== */
 .lib-manager .tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #eee}
@@ -256,7 +223,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
     <!-- 隐藏的筛选控件（JS 引用用） -->
     <select id="filterStatus" style="display:none"><option value="all">全部</option><option value="pending">待完成</option><option value="done">已完成</option></select>
     <select id="filterPriority" style="display:none"><option value="all">全部</option></select>
-    <select id="filterTag" style="display:none"><option value="all">全部标签</option></select>
     <input type="date" id="filterDueFrom" style="display:none">
     <input type="date" id="filterDueTo" style="display:none">
 
@@ -299,22 +265,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
         <label>截止</label>
         <input type="datetime-local" id="taskDue">
       </div>
-      <div class="field" style="min-width:150px">
-        <label>标签</label>
-        <div class="tag-select-wrap" id="tagSelectWrap">
-          <div class="tag-select-trigger" id="tagTrigger" tabindex="0" onclick="toggleTagDropdown()">
-            <span id="tagChipsContainer"></span>
-            <span class="placeholder" id="tagPlaceholder">点击选择</span>
-          </div>
-          <div class="tag-dropdown" id="tagDropdown">
-            <div id="tagOptList"></div>
-            <div class="custom-add">
-              <input type="text" id="tagCustomInput" placeholder="新建标签..." onkeydown="if(event.key==='Enter'){addCustomTag();event.preventDefault()}">
-              <button onclick="addCustomTag()">+</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      
       <div class="field" style="flex:1;min-width:120px">
         <label>备注</label>
         <input type="text" id="taskNote" placeholder="备注..." style="width:100%" autocomplete="off">
@@ -401,18 +352,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
     <div class="field"><label>截止日期时间</label><input type="datetime-local" id="editDue"></div>
     <div class="field">
       <label>标签</label>
-      <div class="edit-tags-wrap" id="editTagWrap">
-        <div class="edit-tags-trigger" id="editTagTrigger" tabindex="0" onclick="toggleEditTagDropdown()">
-          <span id="editTagChipsContainer"></span>
-          <span class="placeholder" id="editTagPlaceholder">点击选择标签</span>
-        </div>
-        <div class="edit-tag-dropdown" id="editTagDropdown">
-          <div id="editTagOptList"></div>
-          <div class="custom-add">
-            <input type="text" id="editTagCustomInput" placeholder="新建标签..." onkeydown="if(event.key==='Enter'){addEditCustomTag();event.preventDefault()}">
-            <button onclick="addEditCustomTag()">+</button>
-          </div>
-        </div>
+      
+        
       </div>
     </div>
     <div class="field"><label>备注</label><input type="text" id="editNote" style="width:100%"></div>
@@ -440,8 +381,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
   <div class="modal-box lib-manager">
     <h3>📚 选项库管理</h3>
     <div class="tabs">
-      <div class="tab active" onclick="switchLibTab('tasks',this)">📋 待办名称</div>
-      <div class="tab" onclick="switchLibTab('tags',this)">🏷️ 标签</div>
+      <div class="tab active" onclick="switchLibTab('tasks',this)">📋 待办名称</div>      
     </div>
     <div class="tab-panel show" id="libPanelTasks">
       <div class="panel-header">
@@ -452,10 +392,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
     </div>
     <div class="tab-panel" id="libPanelTags">
       <div class="panel-header">
-        <input type="text" id="libNewTag" placeholder="新标签..." onkeydown="if(event.key==='Enter')addLibTag()">
-        <button onclick="addLibTag()">添加</button>
       </div>
-      <div class="lib-list" id="libTagList"></div>
+      
     </div>
     <div class="modal-btns" style="margin-top:12px">
       <button class="btn" onclick="closeLibManager()">关闭</button>
@@ -497,7 +435,6 @@ const client = aipexbase.createClient({ baseUrl: BASE_URL, apiKey: API_KEY });
 
 // ===== 本地选项库 =====
 const LS_LIB = 'cloud_task_lib';
-const LS_TAGS = 'cloud_tags';
 const DEFAULT_LIB = ['编写日报','编写周报','晨会汇报','代码 Review','功能开发','Bug 修复','单元测试','需求评审','技术方案设计','项目同步','客户沟通','文档编写','线上问题排查','性能优化','发布上线'];
 const DEFAULT_TAGS = ['开发','紧急','前端','后端','测试','文档','会议','沟通','设计','运维','产品','日常'];
 
@@ -531,35 +468,6 @@ async function cloudSaveLib(lib){
   }catch(e){console.warn('cloudSaveLib error:',e)}
 }
 // ---- 云端标签库同步 ----
-async function cloudLoadTagLib(){
-  try {
-    const uid=getUserId();
-    if(!uid) return null;
-    const r=await client.db.from('tasks').list().eq('task_date','__lib__').eq('name','tag_names'+uid);
-    if(r.success && r.data && r.data.length>0){
-      const note=r.data[0].note||'';
-      if(note) return JSON.parse(note);
-    }
-  }catch(e){}
-  return null;
-}
-async function cloudSaveTagLib(tags){
-  try {
-    const uid=getUserId();
-    if(!uid) return;
-    const ownerTag='__u:'+uid+'__';
-    const r=await client.db.from('tasks').list().eq('task_date','__lib__').eq('name','tag_names'+uid);
-    if(r.success && r.data && r.data.length>0){
-      await client.db.from('tasks').update().set({note:JSON.stringify(tags)}).eq('id',r.data[0].id);
-    } else {
-      await client.db.from('tasks').insert().values({
-        task_date:'__lib__', name:'tag_names'+uid, note:JSON.stringify(tags),
-        prio:'', due:'', tags:JSON.stringify([ownerTag]), done:'false', done_at:'', ts:new Date().toISOString()
-      });
-    }
-  }catch(e){console.warn('cloudSaveTagLib error:',e)}
-}
-
 let _cachedLib=null, _cachedTags=null;
 
 async function getLib(){
@@ -586,31 +494,7 @@ async function saveLib(l){
   _cachedLib = l;
   await cloudSaveLib(l);
 }
-async function getTagLib(){
-  if(_cachedTags) return _cachedTags;
-  const cloud = await cloudLoadTagLib();
-  if(cloud && cloud.length>0){
-    _cachedTags = cloud;
-    localStorage.setItem(LS_TAGS,JSON.stringify(cloud));
-    return cloud;
-  }
-  let r=localStorage.getItem(LS_TAGS);
-  if(r){
-    try{_cachedTags=JSON.parse(r);}catch(e){_cachedTags=r.split(',')}
-    // 本地有旧数据但云端没有 → 推上云
-    if(_cachedTags.length>0) await cloudSaveTagLib(_cachedTags);
-    return _cachedTags;
-  }
-  _cachedTags = [...DEFAULT_TAGS];
-  return _cachedTags;
-}
 function invalidateTagsCache(){_cachedTags=null}
-async function saveTagLib(t){
-  localStorage.setItem(LS_TAGS,JSON.stringify(t));
-  _cachedTags = t;
-  await cloudSaveTagLib(t);
-}
-
 // ===== 用户账号系统 =====
 const USER_KEY = 'cloud_todo_user';
 
@@ -869,7 +753,7 @@ const taskPrio=$('#taskPrio'), taskDue=$('#taskDue'), taskNote=$('#taskNote');
 const taskList=$('#taskList'), summaryList=$('#summaryList');
 const totalBadge=$('#totalBadge'), doneCount=$('#doneCount'), pendCount=$('#pendCount'), overdueCount=$('#overdueCount'), doneRate=$('#doneRate');
 const summaryBadge=$('#summaryBadge');
-const filterStatus=$( '#filterStatus')||{value:'all'}, filterPriority=$( '#filterPriority')||{value:'all'}, filterTag=$( '#filterTag')||{value:'all'};
+const filterStatus=$( '#filterStatus')||{value:'all'}, filterPriority=$( '#filterPriority')||{value:'all'};
 const filterDueFrom=$( '#filterDueFrom')||{value:''}, filterDueTo=$( '#filterDueTo')||{value:''};
 let _filterOverride='all';
 
@@ -882,38 +766,7 @@ function setFilter(val,el){
 
 // ===== 标签选择 =====
 let selectedTags=[];
-const tagTrigger=$('#tagTrigger'), tagDropdown=$('#tagDropdown'), tagPlaceholder=$('#tagPlaceholder'), tagOptList=$('#tagOptList'), tagCustomInput=$('#tagCustomInput'), tagChipsContainer=$('#tagChipsContainer');
-
-async function toggleTagDropdown(){
-  const show=tagDropdown.classList.toggle('show');
-  if(show){await renderTagOptions();tagCustomInput.focus()}
-}
-async function renderTagOptions(){
-  const all=await getTagLib();
-  tagOptList.innerHTML=all.map(t=>{
-    const checked=selectedTags.includes(t)?'checked':'';
-    return `<div class="opt"><input type="checkbox" ${checked} data-tag="${escHtml(t)}" onchange="toggleTagOpt(this.dataset.tag)"><span class="label">${escHtml(t)}</span></div>`;
-  }).join('');
-}
-async function toggleTagOpt(tag){
-  const idx=selectedTags.indexOf(tag);
-  if(idx>-1) selectedTags.splice(idx,1);else selectedTags.push(tag);
-  renderTagChips();await renderTagOptions();
-}
-async function addCustomTag(){
-  const v=tagCustomInput.value.trim();
-  if(!v) return;
-  const all=await getTagLib();
-  if(!all.includes(v)){all.push(v);await saveTagLib(all)}
-  if(!selectedTags.includes(v)) selectedTags.push(v);
-  tagCustomInput.value='';renderTagChips();await renderTagOptions();
-}
-function renderTagChips(){
-  tagChipsContainer.innerHTML=selectedTags.map(t=>`<span class="tag-chip">${escHtml(t)}<span class="remove" data-tag="${escHtml(t)}" onclick="removeTag(this.dataset.tag);event.stopPropagation()">×</span></span>`).join('');
-  tagPlaceholder.style.display=selectedTags.length===0?'':'none';
-}
-async function removeTag(tag){selectedTags=selectedTags.filter(t=>t!==tag);renderTagChips();await renderTagOptions()}
-function resetTagPicker(){selectedTags=[];renderTagChips()}
+function resetTagPicker(){selectedTags=[]}
 
 // ===== 待办名称下拉 =====
 let _selectedTaskName='';
@@ -955,17 +808,14 @@ async function renderAll(){
 }
 
 function getVisibleTasks(){
-  const st=_filterOverride, pr=filterPriority.value, tg=filterTag.value;
+  const st=_filterOverride, pr=filterPriority.value;
   const df=filterDueFrom.value, dt=filterDueTo.value;
   let filtered=tasksCache.filter(t=>{
     if(st==='pending'&&t.done)return false;
     if(st==='done'&&!t.done)return false;
     if(st==='overdue'){if(t.done||!t.due)return false;const dd=new Date(t.due);if(!isNaN(dd.getTime())&&dd>=new Date())return false}
     if(pr!=='all'&&t.prio!==pr)return false;
-    if(tg!=='all'){
-      const tags=(t.tags||[]).map(x=>x.trim().toLowerCase());
-      if(!tags.includes(tg.toLowerCase()))return false;
-    }
+
     if(df&&t.due&&t.due<df)return false;
     if(dt&&t.due&&t.due>dt)return false;
     return true;
@@ -1024,7 +874,6 @@ function renderTasks(){
   }
   updateStats();
   updateSummary();
-  updateFilters();
   loadUnfinishedTasks();
 }
 
@@ -1056,14 +905,6 @@ function updateSummary(){
     }).join('');
   }
   const tagMap={};
-}
-
-function updateFilters(){
-  const tagSet=new Set();
-  tasksCache.forEach(t=>(t.tags||[]).forEach(tg=>{const k=tg.trim();if(k)tagSet.add(k)}));
-  const cur=filterTag.value;
-  filterTag.innerHTML='<option value="all">全部标签</option>'+[...tagSet].sort().map(t=>`<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
-  filterTag.value=tagSet.has(cur)?cur:'all';
 }
 
 // ===== 操作 =====
@@ -1126,9 +967,9 @@ function editTask(id){
   const t=tasksCache.find(x=>x.id===id);
   if(!t)return;
   _editId=id;$('#editName').value=t.name;$('#editPrio').value=t.prio||'p2';$('#editDue').value=t.due||'';$('#editNote').value=t.note||'';
-  _editTags=[...(t.tags||[])];renderEditTagChips();$('#editModal').classList.add('show');
+  _editTags=[...(t.tags||[])];$('#editModal').classList.add('show');
 }
-function closeEditModal(){$('#editModal').classList.remove('show');_editId=null;$('.edit-tag-dropdown').classList.remove('show')}
+function closeEditModal(){$('#editModal').classList.remove('show');_editId=null;}
 async function saveEdit(){
   if(_editId===null)return;
   const t=tasksCache.find(x=>x.id===_editId);
@@ -1145,79 +986,27 @@ async function saveEdit(){
     toast('☁️ 更新失败','#ef4444');
   }
 }
-async function toggleEditTagDropdown(){const dd=$('.edit-tag-dropdown');dd.classList.toggle('show');await renderEditTagOptions();if(dd.classList.contains('show'))$('#editTagCustomInput').focus()}
-async function renderEditTagOptions(){
-  const all=await getTagLib();
-  $('#editTagOptList').innerHTML=all.map(t=>{
-    const checked=_editTags.includes(t)?'checked':'';
-    return `<div class="opt"><input type="checkbox" ${checked} data-tag="${escHtml(t)}" onchange="toggleEditTag(this.dataset.tag)"><span class="label">${escHtml(t)}</span></div>`;
-  }).join('');
-}
-async function toggleEditTag(tag){const idx=_editTags.indexOf(tag);if(idx>-1)_editTags.splice(idx,1);else _editTags.push(tag);renderEditTagChips();await renderEditTagOptions()}
 async function addEditCustomTag(){
-  const v=$('#editTagCustomInput').value.trim();
-  if(!v)return;const all=await getTagLib();
-  if(!all.includes(v)){all.push(v);await saveTagLib(all)}
+  const v=$('#editCustomTag').value.trim();
+  if(!v)return;
   if(!_editTags.includes(v))_editTags.push(v);
-  $('#editTagCustomInput').value='';renderEditTagChips();await renderEditTagOptions()
-}
-function renderEditTagChips(){
-  $('#editTagChipsContainer').innerHTML=_editTags.map(t=>`<span class="tag-chip">${escHtml(t)}<span class="remove" data-tag="${escHtml(t)}" onclick="removeEditTag(this.dataset.tag);event.stopPropagation()">×</span></span>`).join('');
-  $('#editTagPlaceholder').style.display=_editTags.length===0?'':'none';
-}
-async function removeEditTag(tag){_editTags=_editTags.filter(t=>t!==tag);renderEditTagChips();await renderEditTagOptions()}
-
+  $('#editCustomTag').value='';}
 // ===== 选项库管理 =====
 let _libEditIdx={tasks:null,tags:null};
-async function openLibManager(){_libEditIdx={tasks:null,tags:null};await renderLibTasks();await renderLibTags();$('#libModal').classList.add('show')}
+async function openLibManager(){_libEditIdx={tasks:null,tags:null};await renderLibTasks();$('#libModal').classList.add('show')}
 async function closeLibManager(){$('#libModal').classList.remove('show');await renderAll()}
-function switchLibTab(tab,el){$$('.lib-manager .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');$$('.lib-manager .tab-panel').forEach(p=>p.classList.remove('show'));$('#libPanel'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('show')}
 async function renderLibTasks(){
   const lib=await getLib();
   if(lib.length===0){$('#libTaskList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">暂无</div>';return}
   $('#libTaskList').innerHTML=lib.map((t,i)=>`<div class="lib-item"><span class="name">${escHtml(t)}</span><div class="actns"><button onclick="editLibTask(${i})">✏️</button><button onclick="deleteLibTask(${i})">🗑️</button></div></div>`).join('');
 }
-async function renderLibTags(){
-  const lib=await getTagLib();
-  if(lib.length===0){$('#libTagList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">暂无</div>';return}
-  $('#libTagList').innerHTML=lib.map((t,i)=>`<div class="lib-item"><span class="name">${escHtml(t)}</span><div class="actns"><button onclick="editLibTag(${i})">✏️</button><button onclick="deleteLibTag(${i})">🗑️</button></div></div>`).join('');
-}
-async function addLibTask(){
-  const v=$('#libNewTask').value.trim();if(!v){toast('请输入名称','#f59e0b');return}
-  const lib=await getLib();const idx=_libEditIdx.tasks;
-  if(idx!==null){if(lib[idx]!==v&&lib.includes(v)){toast('已存在其他同名项','#f59e0b');return}lib[idx]=v;_libEditIdx.tasks=null}
-  else{if(lib.includes(v)){toast('已存在','#f59e0b');return}lib.push(v)}
-  await saveLib(lib);$('#libNewTask').value='';await renderLibTasks();toast(idx!==null?'✏️ 已修改':'✅ 已添加','#34c759')
-}
-async function addLibTag(){
-  const v=$('#libNewTag').value.trim();if(!v){toast('请输入标签','#f59e0b');return}
-  const lib=await getTagLib();const idx=_libEditIdx.tags;
-  if(idx!==null){if(lib[idx]!==v&&lib.includes(v)){toast('已存在其他同名项','#f59e0b');return}lib[idx]=v;_libEditIdx.tags=null}
-  else{if(lib.includes(v)){toast('已存在','#f59e0b');return}lib.push(v)}
-  await saveTagLib(lib);$('#libNewTag').value='';await renderLibTags();toast(idx!==null?'✏️ 已修改':'✅ 已添加','#34c759')
-}
-async function deleteLibTask(idx){
-  const lib=await getLib();
-  showConfirm('删除确认','删除 "'+lib[idx]+'" ？','删除',async()=>{
-    lib.splice(idx,1);await saveLib(lib);await renderLibTasks();toast('已删除','#ef4444');
-  });
-}
-async function deleteLibTag(idx){
-  const lib=await getTagLib();
-  showConfirm('删除确认','删除 "'+lib[idx]+'" ？','删除',async()=>{
-    lib.splice(idx,1);await saveTagLib(lib);await renderLibTags();toast('已删除','#ef4444');
-  });
-}
-async function editLibTask(idx){_libEditIdx.tasks=idx;const inp=$('#libNewTask');const lib=await getLib();inp.value=lib[idx];inp.focus();inp.select()}
-async function editLibTag(idx){_libEditIdx.tags=idx;const inp=$('#libNewTag');const lib=await getTagLib();inp.value=lib[idx];inp.focus();inp.select()}
-
 // ===== 筛选 & 重置 =====
 function clearFilters(){
   _filterOverride='all';
   $$('.filter-pills .pill[data-filter]').forEach(p=>p.classList.remove('active'));
   const firstPill=$$('.filter-pills .pill[data-filter]')[0];
   if(firstPill) firstPill.classList.add('active');
-  filterPriority.value='all';filterTag.value='all';filterDueFrom.value='';filterDueTo.value='';
+  filterPriority.value='all';filterDueFrom.value='';filterDueTo.value='';
   renderTasks();
 }
 
@@ -1334,8 +1123,6 @@ sortBy.addEventListener('change',renderTasks);
 document.addEventListener('click',function(e){
   if(e.target.id==='confirmOk')doConfirm(true);
   if(e.target.id==='confirmCancel'||e.target.classList.contains('modal-overlay')){if(e.target.id==='confirmCancel'||e.target.id==='confirmModal')doConfirm(false)}
-  const w=$('#tagSelectWrap');if(w&&!w.contains(e.target))tagDropdown.classList.remove('show');
-  const ew=$('#editTagWrap');if(ew&&!ew.contains(e.target))$('.edit-tag-dropdown').classList.remove('show');
   const nw=$('#taskNameWrap');if(nw&&!nw.contains(e.target))$('#taskNameDropdown').classList.remove('show');
   if(e.target.classList.contains('modal-overlay')){if(e.target.id!=='confirmModal')closeEditModal()}
 });
