@@ -361,13 +361,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
     <ul class="summary-list" id="summaryList"><li class="empty-tip" style="padding:16px 0">暂无数据</li></ul>
   </div>
 
-  <!-- 未完成事项库 -->
+  <!-- 逾期事项 -->
   <div class="card">
     <div class="card-header">
       <div class="title">🔴 逾期事项</div>
-      <span id="unfinishedBadge" style="font-size:11px;color:#ef4444;font-weight:600">0</span>
+      <span id="overdueBadge" style="font-size:11px;color:#ef4444;font-weight:600">0</span>
     </div>
-    <div id="unfinishedList" style="font-size:13px;color:#666;line-height:1.8"></div>
+    <div id="overdueList" style="font-size:13px;color:#666;line-height:1.8"></div>
+  </div>
+
+  <!-- 跟进中 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="title">📋 跟进中</div>
+      <span id="followupBadge" style="font-size:11px;color:#f59e0b;font-weight:600">0</span>
+    </div>
+    <div id="followupList" style="font-size:13px;color:#666;line-height:1.8"></div>
   </div>
 
   <!-- 操作日志 -->
@@ -942,6 +951,7 @@ async function renderAll(){
   await loadTasks(dateIn.value);
   await renderTaskNameOptions();
   renderTasks();
+  loadUnfinishedTasks();
 }
 
 function getVisibleTasks(){
@@ -1015,7 +1025,7 @@ function renderTasks(){
   updateStats();
   updateSummary();
   updateFilters();
-  updateUnfinishedCount();
+  loadUnfinishedTasks();
 }
 
 function updateStats(){
@@ -1450,7 +1460,7 @@ async function cleanupOrphanLibRecords(){
 }
 
 
-// ===== 未完成事项库 =====
+// ===== 逾期事项 & 跟进中（双栏） =====
 let _unfinishedTasks=[];
 
 async function loadUnfinishedTasks(){
@@ -1460,7 +1470,7 @@ async function loadUnfinishedTasks(){
     const res=await client.db.from('tasks').list();
     if(!res.success||!res.data) return;
     _unfinishedTasks=res.data.filter(t=>{
-      if(t.task_date==='__lib__'||t.task_date==='__auth__') return false;
+      if(t.task_date==='__lib__'||t.task_date==='__auth__'||t.task_date==='__log__') return false;
       if(t.done==='true') return false;
       const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
       return !tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__');
@@ -1476,37 +1486,53 @@ async function loadUnfinishedTasks(){
 }
 
 function renderUnfinishedTasks(){
-  const list=$('#unfinishedList');
-  const badge=$('#unfinishedBadge');
-  if(!_unfinishedTasks.length){
-    list.innerHTML='暂无逾期事项 \u2705';
-    badge.textContent='0';
-    return;
-  }
   const now=new Date();
-  const overdue=_unfinishedTasks.filter(t=>{
-    if(!t.due) return false;
-    const dd=new Date(t.due);
-    return !isNaN(dd.getTime())&&dd<now;
+  const overdue=[];
+  const following=[];
+  _unfinishedTasks.forEach(t=>{
+    if(t.due){
+      const dd=new Date(t.due);
+      if(!isNaN(dd.getTime())&&dd<now){
+        overdue.push(t);
+      }else{
+        following.push(t);
+      }
+    }else{
+      following.push(t);
+    }
   });
+  // overdue
+  const olist=$('#overdueList');
+  const obadge=$('#overdueBadge');
   if(!overdue.length){
-    list.innerHTML='暂无逾期事项 \u2705';
-    badge.textContent='0';
-    return;
+    olist.innerHTML='<div style="color:#999;font-size:12px;padding:4px 0">\u2705 \u6682\u65e0\u903e\u671f</div>';
+    obadge.textContent='0';
+  }else{
+    obadge.textContent=overdue.length;
+    olist.innerHTML=overdue.map(t=>makePendItem(t,true)).join('');
   }
-  badge.textContent=overdue.length;
-  list.innerHTML='<div style="font-weight:600;color:#ef4444;font-size:12px;margin-bottom:4px">\u{1F534} 逾期 '+overdue.length+' 项</div>'+
-    overdue.map(t=>makeUnfItem(t,true)).join('');
+  // following up
+  const flist=$('#followupList');
+  const fbadge=$('#followupBadge');
+  if(!following.length){
+    flist.innerHTML='<div style="color:#999;font-size:12px;padding:4px 0">\u6682\u65e0</div>';
+    fbadge.textContent='0';
+  }else{
+    fbadge.textContent=following.length;
+    flist.innerHTML=following.map(t=>makePendItem(t,false)).join('');
+  }
 }
 
-function makeUnfItem(t,od){
+function makePendItem(t,isOverdue_){
   const dateLabel=t.date.replace(/-/g,'/');
   const prioLabel={p1:'\u{1F534}',p2:'\u{1F7E1}',p3:'\u26AA'}[t.prio]||'\u{1F7E1}';
-  return '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #f5f5f5">'+
-    '<input type="checkbox" style="accent-color:#34c759" onchange="completeUnfinished('+t.id+')">'+
-    '<div style="flex:1;min-width:0">'+
-      '<span style="font-size:11px;color:#999">'+prioLabel+' '+dateLabel+'</span> '+
-      '<span style="color:#1d1d1f">'+escHtml(t.name)+'</span>'+
+  const dueLabel=t.due?'\u23F0 '+t.due.slice(5,16):'';
+  const bg=isOverdue_?'#fef2f2':'#fafafa';
+  return '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #f0f0f0;background:'+bg+';border-radius:6px;margin-bottom:2px;padding:5px 6px">'+
+    '<input type="checkbox" style="accent-color:#34c759;flex-shrink:0" onchange="completeUnfinished('+t.id+')">'+
+    '<div style="flex:1;min-width:0;line-height:1.4">'+
+      '<div style="font-size:12px;color:#1d1d1f">'+prioLabel+' '+escHtml(t.name)+'</div>'+
+      '<div style="font-size:11px;color:#999">'+dateLabel+(dueLabel?' \u00B7 '+dueLabel:'')+'</div>'+
     '</div></div>';
 }
 
@@ -1515,20 +1541,13 @@ async function completeUnfinished(id){
     const t=_unfinishedTasks.find(x=>x.id===id);
     if(!t) return;
     await client.db.from('tasks').update().set({done:'true',done_at:new Date().toISOString()}).eq('id',id);
-    const uid=getUserId();if(uid) logOperation(uid,'unfinish','未完成库勾选 "'+t.name+'"');
-    toast('\u2705 已标记完成：'+t.name,'#34c759');
+    const uid=getUserId();if(uid) logOperation(uid,'unfinish','\u2705 '+t.name);
+    toast('\u2705 \u5df2\u6807\u8bb0\u5b8c\u6210\uff1a'+t.name,'#34c759');
     await loadUnfinishedTasks();
     await renderAll();
   }catch(e){
-    toast('\u2601\uFE0F 操作失败','#ef4444');
+    toast('\u2601\uFE0F \u64cd\u4f5c\u5931\u8d25','#ef4444');
   }
-}
-
-function updateUnfinishedCount(){
-  const pending=tasksCache.filter(t=>t.done!=='true').length;
-  const overdue=tasksCache.filter(t=>isOverdue(t)).length;
-  const badge=$('#unfinishedBadge');
-  if(badge) badge.textContent=pending+' 项待\u00B7'+overdue+' 逾期';
 }
 
 // ===== 操作日志 =====
