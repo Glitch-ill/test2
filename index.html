@@ -993,6 +993,36 @@ async function renderLibTasks(){
   if(lib.length===0){$('#libTaskList').innerHTML='<div style="color:#aaa;text-align:center;padding:20px;font-size:13px">暂无</div>';return}
   $('#libTaskList').innerHTML=lib.map((t,i)=>`<div class="lib-item"><span class="name">${escHtml(t)}</span><div class="actns"><button onclick="editLibTask(${i})">✏️</button><button onclick="deleteLibTask(${i})">🗑️</button></div></div>`).join('');
 }
+
+async function editLibTask(i){
+  const lib=await getLib();
+  const old=lib[i];
+  const v=prompt('编辑待办名称：',old);
+  if(!v||v===old)return;
+  lib[i]=v;
+  await saveLib(lib);
+  await renderLibTasks();
+}
+
+async function deleteLibTask(i){
+  if(!confirm('确定删除？'))return;
+  const lib=await getLib();
+  lib.splice(i,1);
+  await saveLib(lib);
+  await renderLibTasks();
+}
+
+async function addLibTask(){
+  const v=$('#libNewTask').value.trim();
+  if(!v){toast('请输入名称','#f59e0b');return}
+  const lib=await getLib();
+  if(lib.includes(v)){toast('已存在','#f59e0b');return}
+  lib.push(v);
+  await saveLib(lib);
+  $('#libNewTask').value='';
+  await renderLibTasks();
+}
+
 // ===== 筛选 & 重置 =====
 function clearFilters(){
   _filterOverride='all';
