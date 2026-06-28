@@ -370,6 +370,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
     </div>
     <div class="tag-dist" id="tagDistribution" style="color:#666;font-size:13px">暂无标签</div>
   </div>
+
+  <!-- 未完成事项库 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="title">📍 未完成事项库</div>
+      <span id="unfinishedBadge" style="font-size:11px;color:#86868b">0 项</span>
+    </div>
+    <div id="unfinishedList" style="font-size:13px;color:#666;line-height:1.8"></div>
+  </div>
+
+  <!-- 操作日志 -->
+  <div class="card">
+    <div class="card-header" style="cursor:pointer" onclick="toggleActivityLog()">
+      <div class="title">📋 操作日志</div>
+      <span id="activityToggle">展开 ▸</span>
+    </div>
+    <div id="activityLogList" style="font-size:12px;color:#666;max-height:400px;overflow-y:auto;display:none;line-height:1.6"></div>
+  </div>
 </div>
 
 </div>
@@ -990,7 +1008,7 @@ function renderTasks(){
           <div class="meta">
             <span>${prioLabel}</span>
             ${dueStr?`<span>📅 ${dueStr} ${odHtml}</span>`:''}
-            ${(t.tags||[]).filter(x=>x.trim()).map(x=>`<span class="tag">${escHtml(x)}</span>`).join('')}
+            ${visibleTags(t.tags).map(x=>`<span class="tag">${escHtml(x)}</span>`).join('')}
             ${t.note?`<span>📝 ${escHtml(t.note)}</span>`:''}
             ${t.done&&t.doneAt?`<span>✅ ${fmtDoneAt(t.doneAt)}</span>`:''}
           </div>
@@ -1005,6 +1023,7 @@ function renderTasks(){
   updateStats();
   updateSummary();
   updateFilters();
+  updateUnfinishedCount();
 }
 
 function updateStats(){
@@ -1036,7 +1055,7 @@ function updateSummary(){
   }
   const tagMap={};
   tasksCache.forEach(t=>(t.tags||[]).forEach(tg=>{const k=tg.trim();if(!k)return;if(!tagMap[k])tagMap[k]={total:0,done:0};tagMap[k].total++;if(t.done)tagMap[k].done++}));
-  const tagEntries=Object.entries(tagMap);
+  const tagEntries=Object.entries(tagMap).filter(([k])=>!isInternalTag(k));
   $('#tagDistribution').innerHTML=tagEntries.length===0?'暂无标签':
     tagEntries.map(([k,v])=>`<span class="tag-chip"><span class="num">${v.done}/${v.total}</span> ${escHtml(k)}</span>`).join('');
 }
@@ -1203,12 +1222,14 @@ function clearFilters(){
 
 async function resetDay(){
   const d=dateIn.value;
+  const count=tasksCache.filter(t=>t.id).length;
   showConfirm('重置确认','确定清空 '+d+' 的所有待办？','清空',async()=>{
     try {
       const toDel=tasksCache.filter(t=>t.id).map(t=>t.id);
       for(const id of toDel) await deleteTaskFromCloud(id);
       await renderAll();
       toast('已重置','#f59e0b');
+      const uid=getUserId();if(uid) logOperation(uid,'reset','重置今日 '+d+'（'+count+' 条）');
     } catch(e) {toast('☁️ 重置失败','#ef4444')}
   });
 }
@@ -1372,57 +1393,265 @@ async function migrateOldData(){
     updateUserUI();
   }
   await migrateOldData();
-  await rollOverdueTasks();
+  await migrateOldTags();
+  await cleanupOrphanLibRecords();
   const d=todayStr();dateIn.value=d;weekdayLabel.textContent=weekday(d);
   await renderAll();
 })();
 
-// ===== 逾期任务自动顺延到当天 =====
-async function rollOverdueTasks(){
+// ===== 清理脏数据（__u: 旧前缀标签 / _u: 单下划线标签） =====
+async function migrateOldTags(){
   const uid=getUserId();
   if(!uid) return;
-  const today=todayStr();
-  const key='auto_roll_date';
-  if(localStorage.getItem(key)===today) return;
+  const key='migrated_old_tags_v1';
+  if(localStorage.getItem(key)) return;
   try{
-    const res=await client.db.from('tasks').list().lt('task_date', today);
+    const res=await client.db.from('tasks').list();
     if(!res.success||!res.data) return;
-    const overdue=res.data.filter(t=>{
-      if(t.task_date==='__auth__') return false;
-      if(t.done==='true') return false;
-      const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
-      return !tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__');
-    });
-    if(overdue.length===0){localStorage.setItem(key,today);return;}
-    const r2=await client.db.from('tasks').list().eq('task_date', today);
-    let todayNames=new Set();
-    if(r2.success&&r2.data){
-      r2.data.forEach(t=>{
-        const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
-        if(!tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__')){
-          todayNames.add(t.name);
-        }
-      });
-    }
-    let count=0;
-    for(const t of overdue){
-      if(todayNames.has(t.name)) continue;
-      todayNames.add(t.name);
-      const ownerTag='__u:'+uid+'__';
+    let fixed=0;
+    for(const t of res.data){
+      if(t.task_date==='__auth__') continue;
       const tags=[];try{tags.push(...JSON.parse(t.tags||'[]'));}catch(e){}
-      const saveTags=JSON.stringify(tags.filter(x=>!x.startsWith('__u:')).concat([ownerTag]));
-      await client.db.from('tasks').insert().values({
-        task_date: today, name: t.name, prio: t.prio||'p2', due: t.due||'', tags: saveTags, note: t.note||'', done: 'false', done_at: '', ts: new Date().toISOString()
+      let changed=false;
+      const cleaned=tags.map(tag=>{
+        if(tag.startsWith('_u:')&&!tag.startsWith('__u:')){
+          const newTag='__u:'+tag.slice(3);
+          changed=true;
+          return newTag;
+        }
+        return tag;
       });
-      count++;
+      if(changed){
+        await client.db.from('tasks').update().set({tags:JSON.stringify(cleaned)}).eq('id',t.id);
+        fixed++;
+      }
     }
-    localStorage.setItem(key,today);
-    if(count>0) toast('📋 自动顺延 '+count+' 项待办到今天','#1d1d1f');
+    localStorage.setItem(key,'1');
+    if(fixed>0) toast('已修复 '+fixed+' 条旧标签格式 ✅','#34c759');
   }catch(e){
-    console.warn('逾期顺延跳过:',e);
+    console.warn('旧标签迁移跳过:',e);
   }
 }
 
-</script>
+// ===== 清理 __lib__ 脏数据 =====
+async function cleanupOrphanLibRecords(){
+  const uid=getUserId();
+  if(!uid) return;
+  const key='cleaned_orphan_lib_v1';
+  if(localStorage.getItem(key)) return;
+  try{
+    const res=await client.db.from('tasks').list();
+    if(!res.success||!res.data) return;
+    let delCount=0;
+    for(const t of res.data){
+      if(t.task_date==='__lib__'||t.task_date==='__auth__') continue;
+      const name=t.name||'';
+      if(name.startsWith('task_names')||name.startsWith('tag_names')){
+        await client.db.from('tasks').delete().eq('id',t.id);
+        delCount++;
+      }
+    }
+    localStorage.setItem(key,'1');
+    if(delCount>0) toast('已清理 '+delCount+' 条脏数据 ✅','#34c759');
+  }catch(e){
+    console.warn('脏数据清理跳过:',e);
+  }
+}
+
+
+// ===== 未完成事项库 =====
+let _unfinishedTasks=[];
+
+async function loadUnfinishedTasks(){
+  try{
+    const uid=getUserId();
+    if(!uid) return;
+    const res=await client.db.from('tasks').list();
+    if(!res.success||!res.data) return;
+    _unfinishedTasks=res.data.filter(t=>{
+      if(t.task_date==='__lib__'||t.task_date==='__auth__') return false;
+      if(t.done==='true') return false;
+      const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
+      return !tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__');
+    }).map(t=>({
+      id:t.id, name:t.name, date:t.task_date, prio:t.prio||'p2',
+      due:t.due||'', note:t.note||'',
+      tags:t.tags?JSON.parse(t.tags):[]
+    }));
+    renderUnfinishedTasks();
+  }catch(e){
+    console.warn('loadUnfinishedTasks error:',e);
+  }
+}
+
+function renderUnfinishedTasks(){
+  const list=$('#unfinishedList');
+  const badge=$('#unfinishedBadge');
+  if(!_unfinishedTasks.length){
+    list.innerHTML='已完成所有待办 \u{1F389}';
+    badge.textContent='0 项';
+    return;
+  }
+  const now=new Date();
+  const pend=_unfinishedTasks.filter(t=>{
+    if(!t.due) return true;
+    const dd=new Date(t.due);
+    return isNaN(dd.getTime())||dd>=now;
+  });
+  const overdue=_unfinishedTasks.filter(t=>{
+    if(!t.due) return false;
+    const dd=new Date(t.due);
+    return !isNaN(dd.getTime())&&dd<now;
+  });
+  badge.textContent=pend.length+' 待\u00B7'+overdue.length+' 逾期';
+  let html='';
+  if(overdue.length){
+    html+='<div style="font-weight:600;color:#ef4444;font-size:12px;margin-bottom:4px">\u{1F534} 逾期 ('+overdue.length+')</div>';
+    html+=overdue.map(t=>makeUnfItem(t,true)).join('');
+  }
+  if(pend.length){
+    html+='<div style="font-weight:600;color:#f59e0b;font-size:12px;margin-top:8px;margin-bottom:4px">\u23F3 待完成 ('+pend.length+')</div>';
+    html+=pend.map(t=>makeUnfItem(t,false)).join('');
+  }
+  list.innerHTML=html;
+}
+
+function makeUnfItem(t,od){
+  const dateLabel=t.date.replace(/-/g,'/');
+  const prioLabel={p1:'\u{1F534}',p2:'\u{1F7E1}',p3:'\u26AA'}[t.prio]||'\u{1F7E1}';
+  return '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #f5f5f5">'+
+    '<input type="checkbox" style="accent-color:#34c759" onchange="completeUnfinished('+t.id+')">'+
+    '<div style="flex:1;min-width:0">'+
+      '<span style="font-size:11px;color:#999">'+prioLabel+' '+dateLabel+'</span> '+
+      '<span style="color:#1d1d1f">'+escHtml(t.name)+'</span>'+
+    '</div></div>';
+}
+
+async function completeUnfinished(id){
+  try{
+    const t=_unfinishedTasks.find(x=>x.id===id);
+    if(!t) return;
+    await client.db.from('tasks').update().set({done:'true',done_at:new Date().toISOString()}).eq('id',id);
+    const uid=getUserId();if(uid) logOperation(uid,'unfinish','未完成库勾选 "'+t.name+'"');
+    toast('\u2705 已标记完成：'+t.name,'#34c759');
+    await loadUnfinishedTasks();
+    await renderAll();
+  }catch(e){
+    toast('\u2601\uFE0F 操作失败','#ef4444');
+  }
+}
+
+function updateUnfinishedCount(){
+  const pending=tasksCache.filter(t=>t.done!=='true').length;
+  const overdue=tasksCache.filter(t=>isOverdue(t)).length;
+  const badge=$('#unfinishedBadge');
+  if(badge) badge.textContent=pending+' 项待\u00B7'+overdue+' 逾期';
+}
+
+// ===== 操作日志 =====
+let _activityLogOpen=false;
+
+function toggleActivityLog(){
+  _activityLogOpen=!_activityLogOpen;
+  const list=$('#activityLogList');
+  const toggle=$('#activityToggle');
+  if(_activityLogOpen){
+    list.style.display='block';
+    toggle.textContent='收起 \u25BE';
+    reloadActivityLogs();
+  }else{
+    list.style.display='none';
+    toggle.textContent='展开 \u25B8';
+  }
+}
+
+async function logOperation(userId,opType,detail){
+  try{
+    const logEntry={
+      task_date:'__log__',
+      name:'op_'+Date.now(),
+      note:JSON.stringify({
+        userId,opType,detail,
+        time:new Date().toISOString()
+      }),
+      done:'false',prio:'p3',due:'',tags:JSON.stringify(['__u:'+userId+'__','__log__']),done_at:'',
+      ts:new Date().toISOString()
+    };
+    await client.db.from('tasks').insert().values(logEntry);
+    await trimLogs(userId);
+  }catch(e){}
+}
+
+async function trimLogs(userId){
+  try{
+    const r=await client.db.from('tasks').list().eq('task_date','__log__');
+    if(!r.success||!r.data) return;
+    const logs=r.data.filter(t=>{
+      const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
+      return tg.includes('__u:'+userId+'__');
+    }).sort((a,b)=>a.ts.localeCompare(b.ts));
+    if(logs.length>500){
+      const toDel=logs.slice(0,logs.length-500);
+      for(const t of toDel) await client.db.from('tasks').delete().eq('id',t.id).catch(()=>{});
+    }
+  }catch(e){}
+}
+
+async function reloadActivityLogs(){
+  try{
+    const uid=getUserId();
+    if(!uid) return;
+    const r=await client.db.from('tasks').list().eq('task_date','__log__');
+    if(!r.success||!r.data) return;
+    const logs=r.data.filter(t=>{
+      const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
+      return tg.includes('__u:'+uid+'__');
+    }).sort((a,b)=>b.ts.localeCompare(a.ts)).slice(0,30);
+    const list=$('#activityLogList');
+    if(!logs.length){
+      list.innerHTML='<div style="padding:12px 0;text-align:center;color:#aaa">暂无操作记录</div>';
+      return;
+    }
+    list.innerHTML=logs.map(l=>{
+      let detail='';
+      try{detail=JSON.parse(l.note||'{}');}catch(e){}
+      const time=detail.time?new Date(detail.time).toLocaleString('zh-CN',{hour12:false}):'';
+      const icon={add:'\u2795',toggle:'\u2705',edit:'\u270F\uFE0F',delete:'\u{1F5D1}\uFE0F',reset:'\u{1F504}',unfinish:'\u{1F4CD}'}[detail.opType]||'\u{1F4CB}';
+      return '<div style="padding:5px 0;border-bottom:1px solid #f0f0f0">'+
+        '<span style="font-size:11px;color:#999">'+time+'</span> '+icon+' '+
+        '<span>'+escHtml(detail.detail||'')+'</span></div>';
+    }).join('')+'<div style="padding:5px 0;text-align:center"><button class="btn-second" onclick="showAllLogs()" style="font-size:11px;padding:4px 10px">查看全部</button></div>';
+  }catch(e){
+    console.warn('reloadActivityLogs error:',e);
+  }
+}
+
+async function showAllLogs(){
+  try{
+    const uid=getUserId();
+    if(!uid) return;
+    const r=await client.db.from('tasks').list().eq('task_date','__log__');
+    if(!r.success||!r.data) return;
+    const logs=r.data.filter(t=>{
+      const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
+      return tg.includes('__u:'+uid+'__');
+    }).sort((a,b)=>b.ts.localeCompare(a.ts)).slice(0,200);
+    const div=document.createElement('div');
+    div.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:9999;display:flex;justify-content:center;align-items:center;padding:20px';
+    div.innerHTML='<div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:600px;max-height:85vh;overflow-y:auto">'+
+      '<h3 style="font-size:17px;font-weight:600;margin-bottom:16px">\u{1F4CB} 全部操作日志</h3>'+
+      logs.map(l=>{
+        let detail={};
+        try{detail=JSON.parse(l.note||'{}');}catch(e){}
+        const time=detail.time?new Date(detail.time).toLocaleString('zh-CN',{hour12:false}):'';
+        const icon={add:'\u2795',toggle:'\u2705',edit:'\u270F\uFE0F',delete:'\u{1F5D1}\uFE0F',reset:'\u{1F504}',unfinish:'\u{1F4CD}'}[detail.opType]||'\u{1F4CB}';
+        return '<div style="padding:6px 0;border-bottom:1px solid #f0f0f0"><span style="color:#999;font-size:12px">'+time+'</span> '+icon+' '+escHtml(detail.detail||'')+'</div>';
+      }).join('')+
+      '<div style="margin-top:16px;text-align:center"><button class="btn" onclick="this.closest(\'[style*=\\\"position:fixed\\\"]\').remove()">关闭</button></div></div>';
+    document.body.appendChild(div);
+  }catch(e){}
+}
+
+// ===== 包装操作函数，自动写日志 =====</script>
 </body>
 </html>
