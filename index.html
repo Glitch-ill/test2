@@ -362,12 +362,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
     <div class="field"><label>待办名称</label><input type="text" id="editName"></div>
     <div class="field"><label>优先级</label><select id="editPrio"><option value="p1">🔴 高</option><option value="p2">🟡 中</option><option value="p3">⚪ 低</option></select></div>
     <div class="field"><label>截止日期时间</label><input type="datetime-local" id="editDue"></div>
-    <div class="field">
-      <label>标签</label>
-      
-        
-      </div>
-    </div>
     <div class="field"><label>备注</label><input type="text" id="editNote" style="width:100%"></div>
     <div class="modal-btns">
       <button class="btn" onclick="closeEditModal()">取消</button>
@@ -440,8 +434,6 @@ const client = aipexbase.createClient({ baseUrl: BASE_URL, apiKey: API_KEY });
 // ===== 本地选项库 =====
 const LS_LIB = 'cloud_task_lib';
 const DEFAULT_LIB = ['编写日报','编写周报','晨会汇报','代码 Review','功能开发','Bug 修复','单元测试','需求评审','技术方案设计','项目同步','客户沟通','文档编写','线上问题排查','性能优化','发布上线'];
-const DEFAULT_TAGS = ['开发','紧急','前端','后端','测试','文档','会议','沟通','设计','运维','产品','日常'];
-
 // ---- 云端名称库同步 ----
 async function cloudLoadLib(){
   try {
@@ -498,7 +490,6 @@ async function saveLib(l){
   _cachedLib = l;
   await cloudSaveLib(l);
 }
-function invalidateTagsCache(){_cachedTags=null}
 // ===== 用户账号系统 =====
 const USER_KEY = 'cloud_todo_user';
 
@@ -907,7 +898,6 @@ function updateSummary(){
       return `<li class="summary-item"><span class="name">${escHtml(e.name)}</span><span class="count"><span class="done">✅${e.done}</span> / <span class="pending">⏳${e.total-e.done}</span></span><span class="pct">${pct}%</span></li>`;
     }).join('');
   }
-  const tagMap={};
 }
 
 // ===== 操作 =====
