@@ -1086,6 +1086,7 @@ async function addTask(){
     if(!lib.includes(name)){lib.push(name);await saveLib(lib)}
     _selectedTaskName='';renderTaskNameTrigger();taskDue.value='';taskNote.value='';resetTagPicker();
     await renderAll();
+    const uid=getUserId();if(uid) logOperation(uid,'add','添加 "'+name+'"');
     toast('✅ 已添加：'+name,'#34c759');
   } catch(e) {
     toast('☁️ 保存失败，请重试','#ef4444');
@@ -1100,6 +1101,7 @@ async function toggleDone(id){
   try {
     await client.db.from('tasks').update().set({done:t.done?'true':'false', done_at:t.doneAt||''}).eq('id',id);
     renderTasks();
+    const uid=getUserId();if(uid) logOperation(uid,'toggle','"'+t.name+'" '+(t.done?'已完成':'取消完成'));
   } catch(e) {
     toast('☁️ 更新失败','#ef4444');
     t.done=!t.done;t.doneAt=t.done?new Date().toISOString():null;
@@ -1114,6 +1116,7 @@ async function deleteTask(id){
       await deleteTaskFromCloud(id);
       tasksCache=tasksCache.filter(x=>x.id!==id);
       renderTasks();
+      const uid=getUserId();if(uid) logOperation(uid,'delete','删除 "'+t.name+'"');
       toast('已删除：'+t.name,'#ef4444');
     } catch(e) {
       toast('☁️ 删除失败','#ef4444');
@@ -1141,7 +1144,7 @@ async function saveEdit(){
     await saveTaskToCloud(t);
     const lib=await getLib();
     if(!lib.includes(name)){lib.push(name);await saveLib(lib)}
-    closeEditModal();renderTasks();toast('✏️ 已更新','#1d1d1f');
+    closeEditModal();renderTasks();const uid=getUserId();if(uid) logOperation(uid,'edit','编辑 "'+t.name+'"');toast('✏️ 已更新','#1d1d1f');
   } catch(e) {
     toast('☁️ 更新失败','#ef4444');
   }
