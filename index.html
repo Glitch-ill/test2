@@ -126,9 +126,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 .summary-item .count .done{color:#34c759;font-weight:600}
 .summary-item .count .pending{color:#f59e0b;font-weight:600}
 .summary-item .pct{font-size:11px;color:#999;min-width:30px;text-align:right}
-.tag-dist{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
-.tag-dist .tag-chip{background:#f5f5f7;border-radius:6px;padding:2px 10px;font-size:12px;color:#666}
-.tag-dist .tag-chip .num{color:#1d1d1f;font-weight:600}
 
 /* ===== 导出区域 ===== */
 .export-section{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
@@ -364,18 +361,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
     <ul class="summary-list" id="summaryList"><li class="empty-tip" style="padding:16px 0">暂无数据</li></ul>
   </div>
 
-  <div class="card">
-    <div class="card-header">
-      <div class="title">🏷️ 标签分布</div>
-    </div>
-    <div class="tag-dist" id="tagDistribution" style="color:#666;font-size:13px">暂无标签</div>
-  </div>
-
   <!-- 未完成事项库 -->
   <div class="card">
     <div class="card-header">
-      <div class="title">📍 未完成事项库</div>
-      <span id="unfinishedBadge" style="font-size:11px;color:#86868b">0 项</span>
+      <div class="title">🔴 逾期事项</div>
+      <span id="unfinishedBadge" style="font-size:11px;color:#ef4444;font-weight:600">0</span>
     </div>
     <div id="unfinishedList" style="font-size:13px;color:#666;line-height:1.8"></div>
   </div>
@@ -1056,10 +1046,6 @@ function updateSummary(){
     }).join('');
   }
   const tagMap={};
-  tasksCache.forEach(t=>(t.tags||[]).forEach(tg=>{const k=tg.trim();if(!k)return;if(!tagMap[k])tagMap[k]={total:0,done:0};tagMap[k].total++;if(t.done)tagMap[k].done++}));
-  const tagEntries=Object.entries(tagMap).filter(([k])=>!isInternalTag(k));
-  $('#tagDistribution').innerHTML=tagEntries.length===0?'暂无标签':
-    tagEntries.map(([k,v])=>`<span class="tag-chip"><span class="num">${v.done}/${v.total}</span> ${escHtml(k)}</span>`).join('');
 }
 
 function updateFilters(){
@@ -1493,32 +1479,24 @@ function renderUnfinishedTasks(){
   const list=$('#unfinishedList');
   const badge=$('#unfinishedBadge');
   if(!_unfinishedTasks.length){
-    list.innerHTML='已完成所有待办 \u{1F389}';
-    badge.textContent='0 项';
+    list.innerHTML='暂无逾期事项 \u2705';
+    badge.textContent='0';
     return;
   }
   const now=new Date();
-  const pend=_unfinishedTasks.filter(t=>{
-    if(!t.due) return true;
-    const dd=new Date(t.due);
-    return isNaN(dd.getTime())||dd>=now;
-  });
   const overdue=_unfinishedTasks.filter(t=>{
     if(!t.due) return false;
     const dd=new Date(t.due);
     return !isNaN(dd.getTime())&&dd<now;
   });
-  badge.textContent=pend.length+' 待\u00B7'+overdue.length+' 逾期';
-  let html='';
-  if(overdue.length){
-    html+='<div style="font-weight:600;color:#ef4444;font-size:12px;margin-bottom:4px">\u{1F534} 逾期 ('+overdue.length+')</div>';
-    html+=overdue.map(t=>makeUnfItem(t,true)).join('');
+  if(!overdue.length){
+    list.innerHTML='暂无逾期事项 \u2705';
+    badge.textContent='0';
+    return;
   }
-  if(pend.length){
-    html+='<div style="font-weight:600;color:#f59e0b;font-size:12px;margin-top:8px;margin-bottom:4px">\u23F3 待完成 ('+pend.length+')</div>';
-    html+=pend.map(t=>makeUnfItem(t,false)).join('');
-  }
-  list.innerHTML=html;
+  badge.textContent=overdue.length;
+  list.innerHTML='<div style="font-weight:600;color:#ef4444;font-size:12px;margin-bottom:4px">\u{1F534} 逾期 '+overdue.length+' 项</div>'+
+    overdue.map(t=>makeUnfItem(t,true)).join('');
 }
 
 function makeUnfItem(t,od){
