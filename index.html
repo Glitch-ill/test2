@@ -1642,17 +1642,21 @@ async function showAllLogs(){
       return tg.includes('__u:'+uid+'__');
     }).sort((a,b)=>b.ts.localeCompare(a.ts)).slice(0,200);
     const div=document.createElement('div');
+    div.id='showAllLogsOverlay';
     div.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:9999;display:flex;justify-content:center;align-items:center;padding:20px';
-    div.innerHTML='<div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:600px;max-height:85vh;overflow-y:auto">'+
-      '<h3 style="font-size:17px;font-weight:600;margin-bottom:16px">\u{1F4CB} 全部操作日志</h3>'+
+    const contentDiv=document.createElement('div');
+    contentDiv.style.cssText='background:white;border-radius:16px;padding:24px;width:90%;max-width:600px;max-height:85vh;overflow-y:auto';
+    contentDiv.innerHTML='<h3 style="font-size:17px;font-weight:600;margin-bottom:16px">📋 全部操作日志</h3>'+
       logs.map(l=>{
         let detail={};
         try{detail=JSON.parse(l.note||'{}');}catch(e){}
         const time=detail.time?new Date(detail.time).toLocaleString('zh-CN',{hour12:false}):'';
-        const icon={add:'\u2795',toggle:'\u2705',edit:'\u270F\uFE0F',delete:'\u{1F5D1}\uFE0F',reset:'\u{1F504}',unfinish:'\u{1F4CD}'}[detail.opType]||'\u{1F4CB}';
+        const icon={add:'➕',toggle:'✅',edit:'✏️',delete:'🗑️',reset:'🔄',unfinish:'📍'}[detail.opType]||'📋';
         return '<div style="padding:6px 0;border-bottom:1px solid #f0f0f0"><span style="color:#999;font-size:12px">'+time+'</span> '+icon+' '+escHtml(detail.detail||'')+'</div>';
       }).join('')+
-      '<div style="margin-top:16px;text-align:center"><button class="btn" onclick="this.closest(\'[style*=\\\"position:fixed\\\"]\').remove()">关闭</button></div></div>';
+      '<div style="margin-top:16px;text-align:center"><button class="btn" id="closeAllLogsBtn">关闭</button></div>';
+    contentDiv.querySelector('#closeAllLogsBtn').onclick=function(){div.remove()};
+    div.appendChild(contentDiv);
     document.body.appendChild(div);
   }catch(e){}
 }
