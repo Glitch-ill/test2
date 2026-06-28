@@ -752,6 +752,8 @@ function fmtDoneAt(iso){
   const pad=n=>String(n).padStart(2,'0');
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
 }
+function visibleTags(tags){return (tags||[]).filter(t=>!t.startsWith('__u:'))}
+function isInternalTag(k){return k.startsWith('__u:')}
 function fmtDue(dueStr){
   if(!dueStr) return '';
   const parts=dueStr.split('T');
