@@ -333,10 +333,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
     <div id="overdueList" style="font-size:13px;color:#666;line-height:1.8"></div>
   </div>
 
-  <!-- 待办池 -->
+  <!-- 跨日待办池 -->
   <div class="card">
     <div class="card-header">
-      <div class="title">📋 待办池</div>
+      <div class="title">📋 跨日待办池</div>
       <span id="followupBadge" style="font-size:11px;color:#f59e0b;font-weight:600">0</span>
     </div>
     <div id="followupList" style="font-size:13px;color:#666;line-height:1.8"></div>
@@ -969,12 +969,13 @@ async function saveEdit(){
   if(!t){closeEditModal();return}
   const name=$('#editName').value.trim();
   if(!name){toast('请输入名称','#f59e0b');return}
+  const oldNote=t.note||'';
   t.name=name;t.prio=$('#editPrio').value;t.due=$('#editDue').value||'';t.tags=[..._editTags];t.note=$('#editNote').value.trim();
   try {
     await saveTaskToCloud(t);
     const lib=await getLib();
     if(!lib.includes(name)){lib.push(name);await saveLib(lib)}
-    closeEditModal();renderTasks();const uid=getUserId();if(uid) logOperation(uid,'edit','编辑 "'+t.name+'"');toast('✏️ 已更新','#1d1d1f');
+    closeEditModal();renderTasks();const uid=getUserId();if(uid){logOperation(uid,'edit','编辑 "'+t.name+'"');if(t.note!==oldNote){logOperation(uid,'edit','编辑 "'+t.name+'" 备注'+(t.note?'：'+t.note:'：清空'))}}toast('✏️ 已更新','#1d1d1f');
   } catch(e) {
     toast('☁️ 更新失败','#ef4444');
   }
@@ -1274,7 +1275,7 @@ async function cleanupOrphanLibRecords(){
 }
 
 
-// ===== 逾期事项 & 待办池（双栏） =====
+// ===== 逾期事项 & 跨日待办池（双栏） =====
 let _unfinishedTasks=[];
 
 async function loadUnfinishedTasks(){
@@ -1301,6 +1302,7 @@ async function loadUnfinishedTasks(){
 
 function renderUnfinishedTasks(){
   const now=new Date();
+  const todayPrefix=todayStr();
   const overdue=[];
   const following=[];
   _unfinishedTasks.forEach(t=>{
@@ -1308,7 +1310,7 @@ function renderUnfinishedTasks(){
       const dd=new Date(t.due);
       if(!isNaN(dd.getTime())&&dd<now){
         overdue.push(t);
-      }else{
+      }else if(!t.due.startsWith(todayPrefix)){
         following.push(t);
       }
     }else{
@@ -1346,7 +1348,7 @@ function makePendItem(t,isOverdue_){
     '<input type="checkbox" style="accent-color:#34c759;flex-shrink:0" onchange="completeUnfinished('+t.id+')">'+
     '<div style="flex:1;min-width:0;line-height:1.4">'+
       '<div style="font-size:12px;color:#1d1d1f">'+prioLabel+' '+escHtml(t.name)+'</div>'+
-      '<div style="font-size:11px;color:#999">'+dateLabel+(dueLabel?' \u00B7 '+dueLabel:'')+'</div>'+
+      '<div style="font-size:11px;color:#999">'+dateLabel+(dueLabel?' \u00B7 '+dueLabel:'')+(t.note?' <span style="color:#aaa">\u00B7 \uD83D\uDCDD '+escHtml(t.note)+'</span>':'')+'</div>'+
     '</div></div>';
 }
 
