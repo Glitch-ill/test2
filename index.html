@@ -503,10 +503,34 @@ async function findAuthRecord(username){
   return null;
 }
 
+// ---- PBKDF2 密码哈希（安全，基于 Web Crypto API） ----
+async function pbkdf2Hash(password){
+  const encoder=new TextEncoder();
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial=await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const derivedBits=await crypto.subtle.deriveBits({name:'PBKDF2', salt, iterations:600000, hash:'SHA-256'}, keyMaterial, 256);
+  const hashHex=Array.from(new Uint8Array(derivedBits)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const saltHex=Array.from(salt).map(b=>b.toString(16).padStart(2,'0')).join('');
+  return saltHex+':'+hashHex;
+}
+
+async function pbkdf2Verify(password, stored){
+  const [saltHex, hashHex]=stored.split(':');
+  const salt=new Uint8Array(saltHex.match(/.{2}/g).map(b=>parseInt(b,16)));
+  const encoder=new TextEncoder();
+  const keyMaterial=await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const derivedBits=await crypto.subtle.deriveBits({name:'PBKDF2', salt, iterations:600000, hash:'SHA-256'}, keyMaterial, 256);
+  const computedHex=Array.from(new Uint8Array(derivedBits)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  return computedHex===hashHex;
+}
+
+// 兼容旧版 simpleHash（用于升级旧密码）
+function oldSimpleHash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return 'u'+'h'+h}
+
 async function registerUser(username, password){
   const existing=await findAuthRecord(username);
   if(existing) return {ok:false, msg:'用户名已被注册'}
-  const hash='u'+simpleHash(password);
+  const hash=await pbkdf2Hash(password);
   const res=await client.db.from('tasks').insert().values({task_date:'__auth__', name:username, note:hash, done:'false', prio:'', due:'', tags:'[]', done_at:'', ts:new Date().toISOString()});
   if(res.success){
     return {ok:true, user:{id:res.data, username}}
@@ -517,12 +541,21 @@ async function registerUser(username, password){
 async function loginUser(username, password){
   const user=await findAuthRecord(username);
   if(!user) return {ok:false, msg:'用户名或密码错误'}
-  const hash='u'+simpleHash(password);
-  if(user.note!==hash) return {ok:false, msg:'用户名或密码错误'}
+  const stored=user.note||'';
+  // 新版 PBKDF2 验证
+  if(stored.includes(':')){
+    const ok=await pbkdf2Verify(password, stored);
+    if(!ok) return {ok:false, msg:'用户名或密码错误'}
+  } else {
+    // 旧版 simpleHash 兼容 & 升级
+    const oldHash=oldSimpleHash(password);
+    if(user.note!==oldHash) return {ok:false, msg:'用户名或密码错误'}
+    // 升级为新哈希
+    const newHash=await pbkdf2Hash(password);
+    await client.db.from('tasks').update().set({note:newHash}).eq('id',user.id);
+  }
   return {ok:true, user:{id:user.id, username:user.name}}
 }
-
-function simpleHash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return 'h'+h}
 
 let _lockResolve=null;
 let _userData=null;
@@ -662,11 +695,13 @@ async function loadTasks(dateStr){
   try {
     showLoading();
     const uid=getUserId();
+    // 用户数据隔离：user_id 服务端过滤 + 旧数据用 __u: 标签兜底
     const res = await client.db.from('tasks').list().eq('task_date', dateStr);
     if (res.success && Array.isArray(res.data)) {
-      const uid=getUserId();
       tasksCache = res.data.filter(t => {
         if(!uid) return false;
+        // 新格式：user_id 字段匹配；旧格式：__u: 标签回退
+        if(t.user_id) return t.user_id===uid;
         const tags = t.tags ? JSON.parse(t.tags) : [];
         return !tags.some(x=>x.startsWith('__u:')) || tags.includes('__u:'+uid+'__');
       }).map(t => ({
@@ -678,6 +713,7 @@ async function loadTasks(dateStr){
         note: t.note || '',
         done: t.done === 'true',
         doneAt: t.done_at || null,
+        task_date: t.task_date || dateStr,
         ts: t.ts || ''
       }));
     } else {
@@ -712,7 +748,8 @@ async function saveTaskToCloud(task){
       note: task.note || '',
       done: task.done ? 'true' : 'false',
       done_at: task.doneAt || '',
-      ts: task.ts || new Date().toISOString()
+      ts: task.ts || new Date().toISOString(),
+      user_id: uid
     };
     if (task.id) {
       await client.db.from('tasks').update().set(data).eq('id', task.id);
@@ -1082,6 +1119,8 @@ async function collectRangeData(from,to){
       const res=await client.db.from('tasks').list().eq('task_date',s);
       if(res.success&&Array.isArray(res.data)){
         res.data.filter(t=>{
+          // 数据隔离
+          if(t.user_id) return t.user_id===uid;
           const tg=t.tags?JSON.parse(t.tags):[];
           return !tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__');
         }).forEach(t=>{
@@ -1211,9 +1250,38 @@ async function migrateOldData(){
   await migrateOldData();
   await migrateOldTags();
   await cleanupOrphanLibRecords();
+  await backfillUserId();
   const d=todayStr();dateIn.value=d;weekdayLabel.textContent=weekday(d);
   await renderAll();
 })();
+
+// ===== 回填 user_id 字段（旧数据迁移） =====
+async function backfillUserId(){
+  const uid=getUserId();
+  if(!uid) return;
+  const key='backfilled_user_id_v1';
+  if(localStorage.getItem(key)) return;
+  try{
+    const res=await client.db.from('tasks').list();
+    if(!res.success||!res.data) return;
+    let fixed=0;
+    for(const t of res.data){
+      if(t.task_date==='__auth__') continue;
+      if(t.user_id) continue;
+      const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
+      const owner=tg.find(x=>x.startsWith('__u:'));
+      if(owner){
+        const u=owner.replace('__u:','').replace('__','');
+        await client.db.from('tasks').update().set({user_id:u}).eq('id',t.id);
+        fixed++;
+      }
+    }
+    localStorage.setItem(key,'1');
+    if(fixed>0) toast('已回填 '+fixed+' 条数据的 user_id ✅','#34c759');
+  }catch(e){
+    console.warn('backfillUserId skip:',e);
+  }
+}
 
 // ===== 清理脏数据（__u: 旧前缀标签 / _u: 单下划线标签） =====
 async function migrateOldTags(){
@@ -1287,6 +1355,8 @@ async function loadUnfinishedTasks(){
     _unfinishedTasks=res.data.filter(t=>{
       if(t.task_date==='__lib__'||t.task_date==='__auth__'||t.task_date==='__log__') return false;
       if(t.done==='true') return false;
+      // 数据隔离：优先 user_id 字段，旧数据回退到 __u: 标签
+      if(t.user_id) return t.user_id===uid;
       const tg=[];try{tg.push(...JSON.parse(t.tags||'[]'));}catch(e){}
       return !tg.some(x=>x.startsWith('__u:'))||tg.includes('__u:'+uid+'__');
     }).map(t=>({
@@ -1393,12 +1463,13 @@ async function logOperation(userId,opType,detail){
         time:new Date().toISOString()
       }),
       done:'false',prio:'p3',due:'',tags:JSON.stringify(['__u:'+userId+'__','__log__']),done_at:'',
-      ts:new Date().toISOString()
+      ts:new Date().toISOString(),
+      user_id:userId
     };
     await client.db.from('tasks').insert().values(logEntry);
     await trimLogs(userId);
   }catch(e){}
-}
+
 
 async function trimLogs(userId){
   try{
